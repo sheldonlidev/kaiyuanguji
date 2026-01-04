@@ -30,7 +30,14 @@ class LayoutShell extends StatelessWidget {
       backgroundColor: AppTheme.paperBackground,
       appBar: _buildAppBar(context, isMobile),
       drawer: isMobile ? _buildDrawer(context) : null,
-      body: child,
+      body: Column(
+        children: [
+          // 主内容区
+          Expanded(child: child),
+          // 页脚
+          _buildFooter(context, isMobile),
+        ],
+      ),
     );
   }
 
@@ -263,6 +270,198 @@ class LayoutShell extends StatelessWidget {
         context.go(route);
         Navigator.of(context).pop(); // 关闭抽屉
       },
+    );
+  }
+
+  /// 构建页脚
+  Widget _buildFooter(BuildContext context, bool isMobile) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.paperBackground,
+        border: Border(
+          top: BorderSide(
+            color: AppTheme.borderColor,
+            width: 1,
+          ),
+        ),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 32,
+        vertical: isMobile ? 16 : 24,
+      ),
+      child: isMobile ? _buildMobileFooter(context) : _buildDesktopFooter(context),
+    );
+  }
+
+  /// 桌面端页脚布局
+  Widget _buildDesktopFooter(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 左侧：项目信息
+        Expanded(
+          flex: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.book,
+                    color: AppTheme.vermilionRed,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '开源古籍',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '让古籍数字化更简单，让传统文化触手可及',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.secondaryGray,
+                      height: 1.6,
+                    ),
+              ),
+            ],
+          ),
+        ),
+
+        // 中间：快速链接
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '快速链接',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              _buildFooterLink(context, '项目源码', 'https://github.com/sheldonlidev/kaiyuanguji'),
+              _buildFooterLink(context, '问题反馈', 'https://github.com/sheldonlidev/kaiyuanguji/issues'),
+            ],
+          ),
+        ),
+
+        // 右侧：版权信息
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '© ${DateTime.now().year} 开源古籍项目',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.secondaryGray,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '基于 Flutter Web 构建',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.secondaryGray,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 移动端页脚布局
+  Widget _buildMobileFooter(BuildContext context) {
+    return Column(
+      children: [
+        // 项目信息
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.book,
+              color: AppTheme.vermilionRed,
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '开源古籍',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '让古籍数字化更简单，让传统文化触手可及',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.secondaryGray,
+                height: 1.6,
+              ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+
+        // 快速链接
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildFooterLink(context, '项目源码', 'https://github.com/sheldonlidev/kaiyuanguji'),
+            const SizedBox(width: 16),
+            _buildFooterLink(context, '问题反馈', 'https://github.com/sheldonlidev/kaiyuanguji/issues'),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // 版权信息
+        Text(
+          '© ${DateTime.now().year} 开源古籍项目',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.secondaryGray,
+              ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '基于 Flutter Web 构建',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.secondaryGray,
+              ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  /// 页脚链接
+  Widget _buildFooterLink(BuildContext context, String label, String url) {
+    return InkWell(
+      onTap: () {
+        // 显示外部链接提示
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('外部链接: $url'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.vermilionRed,
+              decoration: TextDecoration.underline,
+            ),
+      ),
     );
   }
 }
