@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/content/content_loader.dart';
 import '../../../../core/content/content_parser.dart';
 import '../../../../core/content/content_model.dart';
@@ -134,51 +135,70 @@ title: 开源古籍
   }
 
   Widget _buildContent() {
-    return Center(
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: AppTheme.getContentMaxWidth(context),
-        ),
-        child: SingleChildScrollView(
+    return SingleChildScrollView(
+      primary: true, // 使用浏览器原生滚动条
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: AppTheme.getContentMaxWidth(context),
+          ),
           padding: AppTheme.getContentPadding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 标题
-              if (_content!.title.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 32),
-                  child: Text(
-                    _content!.title,
-                    style: Theme.of(context).textTheme.displayLarge,
-                    textAlign: TextAlign.center,
-                  ),
+            // 标题
+            if (_content!.title.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 32),
+                child: Text(
+                  _content!.title,
+                  style: Theme.of(context).textTheme.displayLarge,
+                  textAlign: TextAlign.center,
                 ),
-
-              // 元数据（作者、日期等）
-              if (_content!.author != null || _content!.createdAt != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  child: _buildMetadata(),
-                ),
-
-              // Markdown 内容
-              MarkdownBody(
-                data: _content!.content,
-                styleSheet: MarkdownTheme.getCenteredStyleSheet(context),
-                selectable: true,
               ),
 
-              // 标签
-              if (_content!.tags != null && _content!.tags!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 32),
-                  child: _buildTags(),
-                ),
-            ],
-          ),
+            // 元数据（作者、日期等）
+            if (_content!.author != null || _content!.createdAt != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: _buildMetadata(),
+              ),
+
+            // Markdown 内容
+            MarkdownBody(
+              data: _content!.content,
+              styleSheet: MarkdownTheme.getCenteredStyleSheet(context),
+              selectable: true,
+              onTapLink: (text, href, title) {
+                if (href != null) {
+                  // 处理内部链接
+                  if (href.startsWith('/')) {
+                    context.go(href);
+                  } else if (href.startsWith('http://') ||
+                      href.startsWith('https://')) {
+                    // 外部链接显示提示
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('外部链接: $href')),
+                    );
+                  }
+                }
+              },
+            ),
+
+            // 标签
+            if (_content!.tags != null && _content!.tags!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 32),
+                child: _buildTags(),
+              ),
+
+            // 底部间距
+            const SizedBox(height: 48),
+          ],
         ),
       ),
+    ),
     );
   }
 

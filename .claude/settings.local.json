@@ -5,7 +5,8 @@
       "Bash(flutter build:*)",
       "Bash(flutter clean:*)",
       "Bash(flutter analyze:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(grep:*)"
     ]
   }
 }

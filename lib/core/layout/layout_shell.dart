@@ -39,6 +39,8 @@ class LayoutShell extends StatelessWidget {
     return AppBar(
       backgroundColor: AppTheme.paperBackground,
       elevation: 0,
+      scrolledUnderElevation: 0, // 滚动时不改变阴影
+      surfaceTintColor: Colors.transparent, // 滚动时不改变颜色
       centerTitle: false,
       leading: showBackButton
           ? IconButton(
