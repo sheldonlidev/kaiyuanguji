@@ -39,7 +39,7 @@ class LayoutShell extends StatelessWidget {
     return AppBar(
       backgroundColor: AppTheme.paperBackground,
       elevation: 0,
-      centerTitle: !isMobile,
+      centerTitle: false,
       leading: showBackButton
           ? IconButton(
               icon: const Icon(Icons.arrow_back),
@@ -47,18 +47,17 @@ class LayoutShell extends StatelessWidget {
             )
           : (isMobile
               ? null // 移动端使用默认的 Drawer 按钮
-              : Padding(
-                  padding: const EdgeInsets.only(left: 16),
-                  child: _buildLogo(context),
+              : IconButton(
+                  icon: Icon(
+                    Icons.book,
+                    color: AppTheme.vermilionRed,
+                  ),
+                  onPressed: () => context.go('/'),
+                  tooltip: '返回首页',
                 )),
       title: isMobile
-          ? _buildLogo(context)
-          : Text(
-              title ?? '开源古籍',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    letterSpacing: 2.0,
-                  ),
-            ),
+          ? _buildLogoText(context)
+          : _buildLogoText(context),
       actions: isMobile ? null : _buildDesktopActions(context),
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
@@ -70,28 +69,17 @@ class LayoutShell extends StatelessWidget {
     );
   }
 
-  /// Logo/标题组件
-  Widget _buildLogo(BuildContext context) {
+  /// Logo文字组件（仅文字，用于AppBar title）
+  Widget _buildLogoText(BuildContext context) {
     return GestureDetector(
       onTap: () => context.go('/'),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.book,
-            color: AppTheme.vermilionRed,
-            size: 24,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '开源古籍',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppTheme.inkBlack,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2.0,
-                ),
-          ),
-        ],
+      child: Text(
+        '开源古籍',
+        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: AppTheme.inkBlack,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2.0,
+            ),
       ),
     );
   }
@@ -99,12 +87,11 @@ class LayoutShell extends StatelessWidget {
   /// 桌面端导航按钮
   List<Widget> _buildDesktopActions(BuildContext context) {
     return [
-      _buildNavButton(context, '首页', '/'),
-      _buildNavButton(context, '第一阶段', '/read/phase1'),
-      _buildNavButton(context, '第二阶段', '/read/phase2'),
-      _buildNavButton(context, '第三阶段', '/read/phase3'),
-      _buildNavButton(context, '第四阶段', '/read/phase4'),
-      _buildNavButton(context, '第五阶段', '/read/phase5'),
+      _buildNavButton(context, '排版', '/read/phase1'),
+      _buildNavButton(context, '校对', '/read/phase2'),
+      _buildNavButton(context, 'OCR', '/read/phase3'),
+      _buildNavButton(context, '共享', '/read/phase4'),
+      _buildNavButton(context, '图谱', '/read/phase5'),
       const SizedBox(width: 16),
     ];
   }
@@ -185,15 +172,15 @@ class LayoutShell extends StatelessWidget {
                   const Divider(height: 1),
                   _buildDrawerSectionHeader(context, '项目路线图'),
                   _buildDrawerItem(
-                      context, Icons.looks_one, '第一阶段', '/read/phase1'),
+                      context, Icons.text_format, '排版', '/read/phase1'),
                   _buildDrawerItem(
-                      context, Icons.looks_two, '第二阶段', '/read/phase2'),
+                      context, Icons.edit, '校对', '/read/phase2'),
                   _buildDrawerItem(
-                      context, Icons.looks_3, '第三阶段', '/read/phase3'),
+                      context, Icons.document_scanner, 'OCR', '/read/phase3'),
                   _buildDrawerItem(
-                      context, Icons.looks_4, '第四阶段', '/read/phase4'),
+                      context, Icons.share, '共享', '/read/phase4'),
                   _buildDrawerItem(
-                      context, Icons.looks_5, '第五阶段', '/read/phase5'),
+                      context, Icons.account_tree, '图谱', '/read/phase5'),
                   const Divider(height: 1),
                   _buildDrawerSectionHeader(context, '其他'),
                   _buildDrawerItem(
