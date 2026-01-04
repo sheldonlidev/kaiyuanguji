@@ -5,6 +5,7 @@ import '../../../../core/content/content_parser.dart';
 import '../../../../core/content/content_model.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/markdown_theme.dart';
+import '../../../../core/layout/layout_shell.dart';
 
 /// 首页
 /// 展示项目简介和主要内容
@@ -78,11 +79,9 @@ title: 开源古籍
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('开源古籍'),
-      ),
-      body: _buildBody(),
+    return LayoutShell(
+      title: '开源古籍',
+      child: _buildBody(),
     );
   }
 

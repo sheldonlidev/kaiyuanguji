@@ -5,6 +5,7 @@ import '../../../../core/content/content_parser.dart';
 import '../../../../core/content/content_model.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/markdown_theme.dart';
+import '../../../../core/layout/layout_shell.dart';
 
 /// 通用阅读页面
 /// 根据传入的文件名加载并显示对应的 Markdown 内容
@@ -100,11 +101,10 @@ class _ReaderPageState extends State<ReaderPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_content?.title ?? '加载中...'),
-      ),
-      body: _buildBody(),
+    return LayoutShell(
+      title: _content?.title,
+      showBackButton: false,
+      child: _buildBody(),
     );
   }
 
