@@ -1,0 +1,151 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../features/static_content/presentation/pages/home_page.dart';
+import '../../features/static_content/presentation/pages/reader_page.dart';
+
+/// 应用路由配置
+class AppRouter {
+  // 禁止实例化
+  AppRouter._();
+
+  /// 路由路径常量
+  static const String home = '/';
+  static const String reader = '/read';
+
+  /// 创建路由配置
+  static GoRouter createRouter() {
+    return GoRouter(
+      initialLocation: home,
+      routes: [
+        // 首页
+        GoRoute(
+          path: home,
+          name: 'home',
+          builder: (context, state) => const HomePage(),
+        ),
+
+        // 阅读页面（带参数）
+        // 使用方式: /read?file=chapter_1
+        GoRoute(
+          path: reader,
+          name: 'reader',
+          builder: (context, state) {
+            final filename = state.uri.queryParameters['file'];
+            final useClassicStyle =
+                state.uri.queryParameters['classic'] == 'true';
+
+            if (filename == null || filename.isEmpty) {
+              return const _ErrorPage(
+                message: '请指定要阅读的文件\n\n示例: /read?file=chapter_1',
+              );
+            }
+
+            return ReaderPage(
+              filename: filename,
+              useClassicStyle: useClassicStyle,
+            );
+          },
+        ),
+
+        // 阅读页面（路径参数版本）
+        // 使用方式: /read/chapter_1
+        GoRoute(
+          path: '/read/:filename',
+          name: 'reader_path',
+          builder: (context, state) {
+            final filename = state.pathParameters['filename'];
+            final useClassicStyle =
+                state.uri.queryParameters['classic'] == 'true';
+
+            if (filename == null || filename.isEmpty) {
+              return const _ErrorPage(
+                message: '文件名无效',
+              );
+            }
+
+            return ReaderPage(
+              filename: filename,
+              useClassicStyle: useClassicStyle,
+            );
+          },
+        ),
+      ],
+
+      // 错误页面
+      errorBuilder: (context, state) {
+        return _ErrorPage(
+          message: '页面不存在\n\n路径: ${state.uri}',
+        );
+      },
+    );
+  }
+
+  /// 导航到阅读页面
+  static void goToReader(
+    BuildContext context,
+    String filename, {
+    bool useClassicStyle = false,
+  }) {
+    context.go(
+      '$reader?file=$filename${useClassicStyle ? '&classic=true' : ''}',
+    );
+  }
+
+  /// 使用路径参数导航到阅读页面
+  static void goToReaderWithPath(
+    BuildContext context,
+    String filename, {
+    bool useClassicStyle = false,
+  }) {
+    context.go(
+      '/read/$filename${useClassicStyle ? '?classic=true' : ''}',
+    );
+  }
+
+  /// 导航到首页
+  static void goToHome(BuildContext context) {
+    context.go(home);
+  }
+}
+
+/// 错误页面组件
+class _ErrorPage extends StatelessWidget {
+  final String message;
+
+  const _ErrorPage({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('错误'),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Color(0xFF8B0000),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                message,
+                style: Theme.of(context).textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: () => AppRouter.goToHome(context),
+                child: const Text('返回首页'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
