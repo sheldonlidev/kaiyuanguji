@@ -84,10 +84,7 @@ class MarkdownTheme {
       blockquoteDecoration: BoxDecoration(
         color: AppTheme.paperBackground,
         border: Border(
-          left: BorderSide(
-            color: AppTheme.vermilionRed,
-            width: 3,
-          ),
+          left: BorderSide(color: AppTheme.vermilionRed, width: 3),
         ),
       ),
 
@@ -102,10 +99,7 @@ class MarkdownTheme {
       codeblockDecoration: BoxDecoration(
         color: const Color(0xFFECE9E0),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: AppTheme.borderColor,
-          width: 1,
-        ),
+        border: Border.all(color: AppTheme.borderColor, width: 1),
       ),
 
       // 列表样式
@@ -153,19 +147,11 @@ class MarkdownTheme {
         color: AppTheme.inkBlack,
       ),
 
-      tableBorder: TableBorder.all(
-        color: AppTheme.borderColor,
-        width: 1,
-      ),
+      tableBorder: TableBorder.all(color: AppTheme.borderColor, width: 1),
 
       // 水平分割线
       horizontalRuleDecoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: AppTheme.borderColor,
-            width: 1,
-          ),
-        ),
+        border: Border(top: BorderSide(color: AppTheme.borderColor, width: 1)),
       ),
 
       // 段落间距
@@ -195,6 +181,48 @@ class MarkdownTheme {
         color: AppTheme.inkBlack,
         letterSpacing: 1.0,
       ),
+    );
+  }
+
+  /// 获取紧凑样式表（适用于移动端或侧边栏）
+  static MarkdownStyleSheet getCompactStyleSheet(BuildContext context) {
+    return getStyleSheet(context).copyWith(
+      p: GoogleFonts.notoSerifSc(
+        fontSize: 14,
+        height: 1.6,
+        color: AppTheme.inkBlack,
+        letterSpacing: 0.3,
+      ),
+      h1: GoogleFonts.notoSerifSc(
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+        color: AppTheme.inkBlack,
+        height: 1.4,
+      ),
+      h2: GoogleFonts.notoSerifSc(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: AppTheme.inkBlack,
+        height: 1.4,
+      ),
+      listIndent: 16,
+      pPadding: const EdgeInsets.only(bottom: 8),
+    );
+  }
+
+  /// 获取诗词样式表（居中对齐，适合古诗词展示）
+  static MarkdownStyleSheet getPoetryStyleSheet(BuildContext context) {
+    return getStyleSheet(context).copyWith(
+      p: GoogleFonts.notoSerifSc(
+        fontSize: 20,
+        height: 2.4,
+        color: AppTheme.inkBlack,
+        letterSpacing: 2.0,
+      ),
+      pPadding: const EdgeInsets.symmetric(vertical: 8),
+      textAlign: WrapAlignment.center,
+      h1Align: WrapAlignment.center,
+      h2Align: WrapAlignment.center,
     );
   }
 }

@@ -47,4 +47,6 @@ app.*.map.json
 #AI related
 progress/
 .claudeignore
+.clauderules
 .claude/
+.agent/
