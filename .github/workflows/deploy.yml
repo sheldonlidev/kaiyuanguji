@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2
         with:
@@ -19,12 +19,26 @@ jobs:
 
       - run: flutter pub get
 
-      # Build the web application.
-      # IMPORTANT: Replace '/kaiyuanguji/' with your repository name if it differs!
-      - run: flutter build web --release --base-href "/kaiyuanguji/"
+      # --- 步骤 1：为 GitHub Pages 构建 ---
+      - name: Build for GitHub Pages
+        run: flutter build web --release --base-href "/kaiyuanguji/" --output build/gh-pages
 
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
+      # --- 步骤 2：为 EdgeOne 构建 ---
+      - name: Build for EdgeOne
+        run: flutter build web --release --base-href "/" --output build/edgeone
+
+      # --- 步骤 3：部署到 GitHub Pages 分支 ---
+      - name: Deploy to GitHub Pages Branch
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/web
+          folder: build/gh-pages
+          branch: gh-pages # 部署到 gh-pages 分支
+
+      # --- 步骤 4：部署到 EdgeOne 分支 ---
+      - name: Deploy to EdgeOne Branch
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build/edgeone
+          branch: edgeone-release # 部署到专门给 EdgeOne 用的分支
+
+     
