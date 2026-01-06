@@ -14,11 +14,19 @@ class LayoutShell extends StatelessWidget {
   /// 是否显示返回按钮
   final bool showBackButton;
 
+  /// 点击导航项的回调（用于在首页时滚动）
+  final VoidCallback? onRoadmapTap;
+  final VoidCallback? onAssistantTap;
+  final VoidCallback? onJoinTap;
+
   const LayoutShell({
     super.key,
     required this.child,
     this.title,
     this.showBackButton = false,
+    this.onRoadmapTap,
+    this.onAssistantTap,
+    this.onJoinTap,
   });
 
   @override
@@ -30,7 +38,7 @@ class LayoutShell extends StatelessWidget {
       backgroundColor: AppTheme.paperBackground,
       appBar: _buildAppBar(context, isMobile),
       drawer: isMobile ? _buildDrawer(context) : null,
-      body: child,
+      body: SelectionArea(child: child),
     );
   }
 
@@ -82,14 +90,20 @@ class LayoutShell extends StatelessWidget {
   List<Widget> _buildDesktopActions(BuildContext context) {
     return [
       _buildNavButton(context, '首页', '/'),
-      _buildNavButton(context, '古籍助手', '/assistant'),
-      _buildNavButton(context, '路线图', '/roadmap'),
+      _buildNavButton(context, '路线图', '/roadmap', onTap: onRoadmapTap),
+      _buildNavButton(context, '古籍助手', '/assistant', onTap: onAssistantTap),
+      _buildNavButton(context, '参与开发', '#join', onTap: onJoinTap),
       const SizedBox(width: 16),
     ];
   }
 
   /// 单个导航按钮
-  Widget _buildNavButton(BuildContext context, String label, String route) {
+  Widget _buildNavButton(
+    BuildContext context,
+    String label,
+    String route, {
+    VoidCallback? onTap,
+  }) {
     final currentRoute = GoRouterState.of(context).uri.toString();
     final isActive =
         currentRoute == route ||
@@ -98,7 +112,22 @@ class LayoutShell extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: TextButton(
-        onPressed: () => context.go(route),
+        onPressed: () {
+          // 如果当前在首页且有滚动回调，执行滚动
+          if (currentRoute == '/' && onTap != null) {
+            onTap();
+          } else if (route.startsWith('#')) {
+            // 如果是锚点，跳回首页并尝试滚动
+            context.go('/');
+            if (onTap != null) {
+              // 延迟执行滚动，等待页面加载
+              Future.delayed(const Duration(milliseconds: 300), onTap);
+            }
+          } else {
+            // 否则跳转到对应页面
+            context.go(route);
+          }
+        },
         style: TextButton.styleFrom(
           foregroundColor: isActive ? AppTheme.vermilionRed : AppTheme.inkBlack,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -156,11 +185,25 @@ class LayoutShell extends StatelessWidget {
                   _buildDrawerItem(context, Icons.home, '首页', '/'),
                   _buildDrawerItem(
                     context,
+                    Icons.map,
+                    '路线图',
+                    '/roadmap',
+                    onTap: onRoadmapTap,
+                  ),
+                  _buildDrawerItem(
+                    context,
                     Icons.auto_awesome,
                     '古籍助手',
                     '/assistant',
+                    onTap: onAssistantTap,
                   ),
-                  _buildDrawerItem(context, Icons.map, '路线图', '/roadmap'),
+                  _buildDrawerItem(
+                    context,
+                    Icons.construction,
+                    '参与开发',
+                    '#join',
+                    onTap: onJoinTap,
+                  ),
                 ],
               ),
             ),
@@ -192,8 +235,9 @@ class LayoutShell extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String label,
-    String route,
-  ) {
+    String route, {
+    VoidCallback? onTap,
+  }) {
     final currentRoute = GoRouterState.of(context).uri.toString();
     final isActive =
         currentRoute == route ||
@@ -217,8 +261,22 @@ class LayoutShell extends StatelessWidget {
       selected: isActive,
       selectedTileColor: AppTheme.vermilionRed.withValues(alpha: 0.05),
       onTap: () {
-        context.go(route);
-        Navigator.of(context).pop(); // 关闭抽屉
+        Navigator.of(context).pop(); // 先关闭抽屉
+
+        // 如果当前在首页且有滚动回调，执行滚动
+        if (currentRoute == '/' && onTap != null) {
+          onTap();
+        } else if (route.startsWith('#')) {
+          // 如果是锚点，跳回首页并尝试滚动
+          context.go('/');
+          if (onTap != null) {
+            // 延迟执行滚动，等待页面加载
+            Future.delayed(const Duration(milliseconds: 300), onTap);
+          }
+        } else {
+          // 否则跳转到对应页面
+          context.go(route);
+        }
       },
     );
   }
@@ -408,12 +466,15 @@ class LayoutShell extends StatelessWidget {
     return InkWell(
       onTap: () {
         // 显示外部链接提示
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('外部链接: $url'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('外部链接: $url'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       },
       child: Text(
         label,
