@@ -111,8 +111,8 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/sheldonlidev/kaiyuanguji.git
-cd kaiyuanguji
+git clone https://github.com/sheldonlidev/kaiyuanguji-web.git
+cd kaiyuanguji-web
 
 # 安装依赖
 flutter pub get
@@ -189,8 +189,8 @@ flutter build web
 
 ## 相关链接
 
-- [GitHub 仓库](https://github.com/sheldonlidev/kaiyuanguji)
-- [问题反馈](https://github.com/sheldonlidev/kaiyuanguji/issues)
+- [GitHub 仓库](https://github.com/sheldonlidev/kaiyuanguji-web)
+- [问题反馈](https://github.com/sheldonlidev/kaiyuanguji-web/issues)
 - [项目路线图](/read/roadmap_overview)
 
 ---
