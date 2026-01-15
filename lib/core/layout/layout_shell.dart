@@ -354,6 +354,7 @@ class LayoutShell extends StatelessWidget {
                 style: Theme.of(
                   context,
                 ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               _buildFooterLink(
                 context,

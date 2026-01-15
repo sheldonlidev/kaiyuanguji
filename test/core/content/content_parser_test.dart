@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kaiyuanguji/core/content/content_parser.dart';
+import 'package:kaiyuanguji_web/core/content/content_parser.dart';
 
 void main() {
   group('ContentParser', () {
