@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 
 /// 统一的页面布局框架
@@ -288,13 +289,10 @@ class LayoutShell extends StatelessWidget {
   static Widget buildFooter(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.paperBackground,
-        border: Border(top: BorderSide(color: AppTheme.borderColor, width: 1)),
-      ),
+      decoration: const BoxDecoration(color: AppTheme.inkBlack),
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 16 : 32,
-        vertical: isMobile ? 16 : 24,
+        vertical: isMobile ? 32 : 48,
       ),
       child: isMobile
           ? _buildMobileFooter(context)
@@ -304,94 +302,82 @@ class LayoutShell extends StatelessWidget {
 
   /// 桌面端页脚布局
   static Widget _buildDesktopFooter(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 左侧：项目信息
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    'assets/images/open-guji-logo.png',
-                    height: 24,
-                    fit: BoxFit.contain,
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 1000),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // 左侧：版权信息
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '© ${DateTime.now().year} 开源古籍项目组',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.5),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '开源古籍',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '让古籍数字化更简单，让传统文化触手可及',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.secondaryGray,
-                  height: 1.6,
                 ),
-              ),
-            ],
-          ),
-        ),
+                const SizedBox(height: 4),
+                Text(
+                  'Powered by Flutter Web',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
+                ),
+              ],
+            ),
 
-        // 中间：快速链接
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '快速链接',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              _buildFooterLink(
-                context,
-                '项目源码',
-                'https://github.com/open-guji/kaiyuanguji-web',
-              ),
-              _buildFooterLink(
-                context,
-                '问题反馈',
-                'https://github.com/open-guji/kaiyuanguji-web/issues',
-              ),
-            ],
-          ),
-        ),
+            // 中间：协议信息
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  '基于 Apache-2.0 协议发布',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '推动古籍数字化、校对及开源存储',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.4),
+                  ),
+                ),
+              ],
+            ),
 
-        // 右侧：版权信息
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '© ${DateTime.now().year} 开源古籍项目',
-                style: Theme.of(
+            // 右侧：快速链接
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '快速链接',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildFooterLink(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.secondaryGray),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '基于 Flutter Web 构建',
-                style: Theme.of(
+                  '项目源码',
+                  'https://github.com/open-guji',
+                ),
+                const SizedBox(height: 8),
+                _buildFooterLink(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.secondaryGray),
-              ),
-            ],
-          ),
+                  '问题反馈',
+                  'https://wj.qq.com/s2/25492820/38ce/',
+                ),
+              ],
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -399,69 +385,37 @@ class LayoutShell extends StatelessWidget {
   static Widget _buildMobileFooter(BuildContext context) {
     return Column(
       children: [
-        // 项目信息
+        // 快速链接
         Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/open-guji-logo.png',
-              height: 20,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '开源古籍',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.0,
-              ),
+            _buildFooterLink(context, '项目源码', 'https://github.com/open-guji'),
+            const SizedBox(width: 24),
+            _buildFooterLink(
+              context,
+              '问题反馈',
+              'https://wj.qq.com/s2/25492820/38ce/',
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 24),
+
+        // 协议信息
         Text(
-          '让古籍数字化更简单，让传统文化触手可及',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppTheme.secondaryGray,
-            height: 1.6,
+          '基于 Apache-2.0 协议发布',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Colors.white.withValues(alpha: 0.9),
+            fontWeight: FontWeight.bold,
           ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
 
-        // 快速链接
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildFooterLink(
-              context,
-              '项目源码',
-              'https://github.com/sheldonlidev/kaiyuanguji-web',
-            ),
-            const SizedBox(width: 16),
-            _buildFooterLink(
-              context,
-              '问题反馈',
-              'https://github.com/sheldonlidev/kaiyuanguji-web/issues',
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        // 版权信息
         Text(
-          '© ${DateTime.now().year} 开源古籍项目',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppTheme.secondaryGray),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          '基于 Flutter Web 构建',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppTheme.secondaryGray),
+          '© ${DateTime.now().year} 开源古籍项目组 | Powered by Flutter Web',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.4),
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -475,23 +429,25 @@ class LayoutShell extends StatelessWidget {
     String url,
   ) {
     return InkWell(
-      onTap: () {
-        // 显示外部链接提示
-        final messenger = ScaffoldMessenger.maybeOf(context);
-        if (messenger != null) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text('外部链接: $url'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
+      onTap: () async {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        } else {
+          // 如果无法打开且处于应用上下文中，显示错误
+          if (context.mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('无法打开链接: $url')));
+          }
         }
       },
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: AppTheme.vermilionRed,
+          color: Colors.white.withValues(alpha: 0.8),
           decoration: TextDecoration.underline,
+          decorationColor: Colors.white.withValues(alpha: 0.4),
         ),
       ),
     );

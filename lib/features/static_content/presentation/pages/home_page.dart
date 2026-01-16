@@ -76,7 +76,7 @@ class _HomePageState extends State<HomePage>
               RoadmapSection(key: _roadmapKey),
               AssistantSection(key: _assistantKey),
               JoinSection(key: _joinKey),
-              const FooterSection(),
+              LayoutShell.buildFooter(context),
             ],
           ),
         ),
