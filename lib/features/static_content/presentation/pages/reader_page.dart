@@ -114,6 +114,20 @@ class _ReaderPageState extends State<ReaderPage> {
     return name;
   }
 
+  /// 打开外部链接
+  /// 在异步操作前捕获 ScaffoldMessenger，避免 use_build_context_synchronously 警告
+  void _launchExternalUrl(Uri uri, String href) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('无法打开链接: $href')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutShell(
@@ -229,21 +243,7 @@ class _ReaderPageState extends State<ReaderPage> {
                         } else if (href.startsWith('http://') ||
                             href.startsWith('https://')) {
                           // 外部链接，使用浏览器打开
-                          final uri = Uri.parse(href);
-                          canLaunchUrl(uri).then((canLaunch) {
-                            if (canLaunch) {
-                              launchUrl(
-                                uri,
-                                mode: LaunchMode.externalApplication,
-                              );
-                            } else {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('无法打开链接: $href')),
-                                );
-                              }
-                            }
-                          });
+                          _launchExternalUrl(Uri.parse(href), href);
                         } else {
                           // 处理相对链接（通常是跳转到另一个 Markdown 文件）
                           // 例如 [第一阶段](phase1) -> /read?file=phase1

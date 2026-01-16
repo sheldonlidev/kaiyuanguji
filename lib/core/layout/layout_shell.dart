@@ -431,14 +431,14 @@ class LayoutShell extends StatelessWidget {
     return InkWell(
       onTap: () async {
         final uri = Uri.parse(url);
+        // 异步操作前捕获 messenger，避免 use_build_context_synchronously 警告
+        final messenger = ScaffoldMessenger.of(context);
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri);
         } else {
           // 如果无法打开且处于应用上下文中，显示错误
           if (context.mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('无法打开链接: $url')));
+            messenger.showSnackBar(SnackBar(content: Text('无法打开链接: $url')));
           }
         }
       },

@@ -4,7 +4,6 @@ import '../widgets/home/hero_section.dart';
 import '../widgets/home/roadmap_section.dart';
 import '../widgets/home/assistant_section.dart';
 import '../widgets/home/join_section.dart';
-import '../widgets/home/footer_section.dart';
 
 /// 首页
 /// 使用现代、原生的 Flutter UI 重新设计

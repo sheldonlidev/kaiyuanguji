@@ -19,6 +19,13 @@ jobs:
 
       - run: flutter pub get
 
+      # --- 预部署质量检查 ---
+      - name: Analyze code
+        run: flutter analyze --fatal-infos
+
+      - name: Run tests
+        run: flutter test
+
       # --- 步骤 1：为 GitHub Pages 构建 ---
       - name: Build for GitHub Pages
         run: flutter build web --release --base-href "/kaiyuanguji-web/" --output build/gh-pages
