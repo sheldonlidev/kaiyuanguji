@@ -3,99 +3,107 @@ import 'package:http/http.dart' as http;
 import 'book_index_model.dart';
 
 /// 古籍索引服务
-/// 从 GitHub 仓库获取古籍数据
+/// 从 GitHub 仓库的 index.json 动态获取古籍数据
 class BookIndexService {
-  static const String _baseApiUrl = 'https://api.github.com/repos/open-guji';
+  static const String _draftIndexUrl =
+      'https://raw.githubusercontent.com/open-guji/book-index-draft/main/index.json';
+  static const String _officialIndexUrl =
+      'https://raw.githubusercontent.com/open-guji/book-index/main/index.json';
 
-  /// 获取所有古籍列表（合并正式版和草稿版）
+  /// 缓存索引数据
+  static List<BookIndexItem>? _cachedItems;
+
+  /// 获取所有古籍列表
   static Future<List<BookIndexItem>> fetchAllBooks() async {
+    // 如果有缓存，直接返回
+    if (_cachedItems != null) {
+      return _cachedItems!;
+    }
+
     final List<BookIndexItem> allItems = [];
 
-    // 获取草稿版（目前主要数据在这里）
-    final draftItems = await _fetchBooksFromRepo('book-index-draft', isDraft: true);
-    allItems.addAll(draftItems);
+    // 获取草稿版索引
+    try {
+      final draftItems = await _fetchIndexFromUrl(_draftIndexUrl, isDraft: true);
+      allItems.addAll(draftItems);
+    } catch (e) {
+      // 草稿版获取失败，忽略
+    }
 
-    // 获取正式版
-    final officialItems = await _fetchBooksFromRepo('book-index', isDraft: false);
-    allItems.addAll(officialItems);
+    // 获取正式版索引（如果有的话）
+    try {
+      final officialItems = await _fetchIndexFromUrl(_officialIndexUrl, isDraft: false);
+      allItems.addAll(officialItems);
+    } catch (e) {
+      // 正式版可能还没有index.json，忽略
+    }
 
+    _cachedItems = allItems;
     return allItems;
   }
 
-  /// 从指定仓库获取书籍列表
-  static Future<List<BookIndexItem>> _fetchBooksFromRepo(
-    String repoName, {
+  /// 从URL获取索引
+  static Future<List<BookIndexItem>> _fetchIndexFromUrl(
+    String url, {
     required bool isDraft,
   }) async {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch index: ${response.statusCode}');
+    }
+
+    final Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
     final List<BookIndexItem> items = [];
 
-    // 遍历三种类型的目录
-    for (final typeDir in ['Book', 'Work', 'Collection']) {
-      try {
-        final typeItems = await _fetchItemsRecursively(
-          repoName,
-          typeDir,
-          isDraft: isDraft,
-        );
-        items.addAll(typeItems);
-      } catch (e) {
-        // 目录可能不存在，忽略错误
+    // 解析 books
+    if (data['books'] != null) {
+      final books = data['books'] as Map<String, dynamic>;
+      for (final entry in books.entries) {
+        items.add(_parseItem(entry.value, BookResourceType.book, isDraft));
+      }
+    }
+
+    // 解析 collections
+    if (data['collections'] != null) {
+      final collections = data['collections'] as Map<String, dynamic>;
+      for (final entry in collections.entries) {
+        items.add(_parseItem(entry.value, BookResourceType.collection, isDraft));
+      }
+    }
+
+    // 解析 works
+    if (data['works'] != null) {
+      final works = data['works'] as Map<String, dynamic>;
+      for (final entry in works.entries) {
+        items.add(_parseItem(entry.value, BookResourceType.work, isDraft));
       }
     }
 
     return items;
   }
 
-  /// 递归获取目录下的所有 .md 文件
-  static Future<List<BookIndexItem>> _fetchItemsRecursively(
-    String repoName,
-    String path, {
-    required bool isDraft,
-  }) async {
-    final List<BookIndexItem> items = [];
-    final url = '$_baseApiUrl/$repoName/contents/$path';
+  /// 解析单个条目
+  static BookIndexItem _parseItem(
+    Map<String, dynamic> json,
+    BookResourceType type,
+    bool isDraft,
+  ) {
+    return BookIndexItem(
+      id: json['id'] as String,
+      name: json['title'] as String,
+      type: type,
+      isDraft: isDraft,
+      rawPath: json['path'] as String,
+      author: json['author'] as String?,
+      collection: json['collection'] as String?,
+      year: json['year'] as String?,
+      holder: json['holder'] as String?,
+    );
+  }
 
-    try {
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Accept': 'application/vnd.github.v3+json'},
-      );
-
-      if (response.statusCode != 200) {
-        return items;
-      }
-
-      final List<dynamic> contents = json.decode(response.body);
-
-      for (final item in contents) {
-        final String itemName = item['name'];
-        final String itemPath = item['path'];
-        final String itemType = item['type'];
-
-        if (itemType == 'file' && itemName.endsWith('.md')) {
-          // 排除模板文件
-          if (!itemPath.contains('template')) {
-            items.add(BookIndexItem.fromGitHubFile(
-              name: itemName,
-              path: itemPath,
-              isDraft: isDraft,
-            ));
-          }
-        } else if (itemType == 'dir') {
-          // 递归获取子目录
-          final subItems = await _fetchItemsRecursively(
-            repoName,
-            itemPath,
-            isDraft: isDraft,
-          );
-          items.addAll(subItems);
-        }
-      }
-    } catch (e) {
-      // 网络错误，返回空列表
-    }
-
-    return items;
+  /// 清除缓存（用于刷新数据）
+  static void clearCache() {
+    _cachedItems = null;
   }
 
   /// 根据ID查找古籍

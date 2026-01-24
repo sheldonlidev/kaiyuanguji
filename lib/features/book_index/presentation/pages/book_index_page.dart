@@ -34,6 +34,7 @@ class _BookIndexPageState extends State<BookIndexPage> {
   }
 
   Future<void> _loadBooks() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -41,12 +42,14 @@ class _BookIndexPageState extends State<BookIndexPage> {
 
     try {
       final books = await BookIndexService.fetchAllBooks();
+      if (!mounted) return;
       setState(() {
         _allBooks = books;
         _filteredBooks = books;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = '加载失败: $e';
         _isLoading = false;

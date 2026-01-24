@@ -31,6 +31,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Future<void> _loadBookDetail() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -39,6 +40,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     try {
       // 先查找书籍信息
       final item = await BookIndexService.findBookById(widget.bookId);
+      if (!mounted) return;
       if (item == null) {
         setState(() {
           _error = '未找到该古籍: ${widget.bookId}';
@@ -49,12 +51,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
       // 获取内容
       final content = await BookIndexService.fetchBookContent(item);
+      if (!mounted) return;
       setState(() {
         _bookItem = item;
         _content = content;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = '加载失败: $e';
         _isLoading = false;
