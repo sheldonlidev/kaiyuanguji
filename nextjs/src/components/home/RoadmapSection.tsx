@@ -54,10 +54,11 @@ export default function RoadmapSection() {
           </div>
 
           {/* Second Row: 2 cards centered */}
-          <div className="grid grid-cols-3 gap-6">
-            <div /> {/* Spacer */}
+          <div className="flex justify-center gap-6">
             {roadmapCards.slice(3, 5).map((card) => (
-              <RoadmapCard key={card.slug} {...card} />
+              <div key={card.slug} className="w-[calc(33.333%-16px)]">
+                <RoadmapCard {...card} />
+              </div>
             ))}
           </div>
         </div>

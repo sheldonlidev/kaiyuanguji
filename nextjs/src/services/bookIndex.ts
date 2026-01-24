@@ -24,7 +24,7 @@ async function fetchIndexFromGitHub(url: string, isDraft: boolean): Promise<Book
 
   // 解析 books
   if (data.books) {
-    data.books.forEach((book) => {
+    Object.values(data.books).forEach((book) => {
       items.push({
         id: book.id,
         name: book.title,
@@ -41,7 +41,7 @@ async function fetchIndexFromGitHub(url: string, isDraft: boolean): Promise<Book
 
   // 解析 collections
   if (data.collections) {
-    data.collections.forEach((collection) => {
+    Object.values(data.collections).forEach((collection) => {
       items.push({
         id: collection.id,
         name: collection.title,
@@ -56,7 +56,7 @@ async function fetchIndexFromGitHub(url: string, isDraft: boolean): Promise<Book
 
   // 解析 works
   if (data.works) {
-    data.works.forEach((work) => {
+    Object.values(data.works).forEach((work) => {
       items.push({
         id: work.id,
         name: work.title,
@@ -96,16 +96,25 @@ export async function fetchAllBooks(): Promise<BookIndexItem[]> {
     const officialItems = await fetchIndexFromGitHub(OFFICIAL_INDEX_URL, false);
     allItems.push(...officialItems);
   } catch (error) {
-    console.error('Failed to fetch official index:', error);
-    // 如果正式版也失败，且没有草稿版数据，抛出错误
-    if (allItems.length === 0) {
-      throw new Error('Failed to fetch book index data');
-    }
+    console.warn('Official index not available (this is expected if it hasn\'t been initialized):', error);
   }
 
   // 缓存结果
-  cachedItems = allItems;
-  return allItems;
+  // 去重：如果同一个 ID 既在草稿又在正式版，优先保留正式版
+  const uniqueItemsMap = new Map<string, BookIndexItem>();
+
+  // 先放草稿
+  allItems.forEach(item => {
+    uniqueItemsMap.set(item.id, item);
+  });
+
+  // 后放正式版（覆盖草稿）
+  // 注意：在之前的 logic 中，allItems 已经按顺序 push 了草稿和正式版
+  // 我们直接用 allItems 重新构建 map 即可
+  const finalItems = Array.from(uniqueItemsMap.values());
+
+  cachedItems = finalItems;
+  return finalItems;
 }
 
 /**

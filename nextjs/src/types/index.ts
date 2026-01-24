@@ -19,27 +19,31 @@ export interface BookIndexItem {
 }
 
 // GitHub API 返回的 JSON 结构
+// 统一使用 Object/Map (Record) 格式
 export interface BookIndexResponse {
-  books?: Array<{
+  books?: Record<string, {
     id: string;
     title: string;
     path: string;
+    type?: string;
     author?: string;
     collection?: string;
     year?: string;
     holder?: string;
   }>;
-  collections?: Array<{
+  collections?: Record<string, {
     id: string;
     title: string;
     path: string;
+    type?: string;
     author?: string;
     year?: string;
   }>;
-  works?: Array<{
+  works?: Record<string, {
     id: string;
     title: string;
     path: string;
+    type?: string;
     author?: string;
     year?: string;
   }>;
