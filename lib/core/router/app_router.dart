@@ -17,6 +17,20 @@ class AppRouter {
   static const String reader = '/read';
   static const String bookIndex = '/book-index';
 
+  /// 基础标题
+  static const String _baseTitle = '开源古籍';
+
+  /// 创建带标题的页面
+  static Page<void> _buildPage(Widget child, String title) {
+    return MaterialPage(
+      child: Title(
+        title: '$title - $_baseTitle',
+        color: const Color(0xFF8B0000),
+        child: child,
+      ),
+    );
+  }
+
   /// 创建路由配置
   static GoRouter createRouter() {
     return GoRouter(
@@ -26,22 +40,30 @@ class AppRouter {
         GoRoute(
           path: home,
           name: 'home',
-          builder: (context, state) => const HomePage(),
+          pageBuilder: (context, state) => _buildPage(
+            const HomePage(),
+            '首页',
+          ),
         ),
 
         // 古籍助手
         GoRoute(
           path: assistant,
           name: 'assistant',
-          builder: (context, state) => const ReaderPage(filename: 'assistant'),
+          pageBuilder: (context, state) => _buildPage(
+            const ReaderPage(filename: 'assistant'),
+            '古籍助手',
+          ),
         ),
 
         // 路线图
         GoRoute(
           path: roadmap,
           name: 'roadmap',
-          builder: (context, state) =>
-              const ReaderPage(filename: 'roadmap_overview'),
+          pageBuilder: (context, state) => _buildPage(
+            const ReaderPage(filename: 'roadmap_overview'),
+            '路线图',
+          ),
         ),
 
         // 阅读页面（带参数）
@@ -49,20 +71,26 @@ class AppRouter {
         GoRoute(
           path: reader,
           name: 'reader',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final filename = state.uri.queryParameters['file'];
             final useClassicStyle =
                 state.uri.queryParameters['classic'] == 'true';
 
             if (filename == null || filename.isEmpty) {
-              return const _ErrorPage(
-                message: '请指定要阅读的文件\n\n示例: /read?file=phase1',
+              return _buildPage(
+                const _ErrorPage(
+                  message: '请指定要阅读的文件\n\n示例: /read?file=phase1',
+                ),
+                '错误',
               );
             }
 
-            return ReaderPage(
-              filename: filename,
-              useClassicStyle: useClassicStyle,
+            return _buildPage(
+              ReaderPage(
+                filename: filename,
+                useClassicStyle: useClassicStyle,
+              ),
+              filename,
             );
           },
         ),
@@ -71,7 +99,10 @@ class AppRouter {
         GoRoute(
           path: bookIndex,
           name: 'bookIndex',
-          builder: (context, state) => const BookIndexPage(),
+          pageBuilder: (context, state) => _buildPage(
+            const BookIndexPage(),
+            '古籍索引',
+          ),
         ),
 
         // 古籍详情页
@@ -79,21 +110,29 @@ class AppRouter {
         GoRoute(
           path: '$bookIndex/:id',
           name: 'bookDetail',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final id = state.pathParameters['id'];
             if (id == null || id.isEmpty) {
-              return const _ErrorPage(
-                message: '请指定古籍ID',
+              return _buildPage(
+                const _ErrorPage(message: '请指定古籍ID'),
+                '错误',
               );
             }
-            return BookDetailPage(bookId: id);
+            // 详情页标题会在页面加载后动态更新
+            return _buildPage(
+              BookDetailPage(bookId: id),
+              '加载中...',
+            );
           },
         ),
       ],
 
       // 错误页面
-      errorBuilder: (context, state) {
-        return _ErrorPage(message: '页面不存在\n\n路径: ${state.uri}');
+      errorPageBuilder: (context, state) {
+        return _buildPage(
+          _ErrorPage(message: '页面不存在\n\n路径: ${state.uri}'),
+          '页面不存在',
+        );
       },
     );
   }

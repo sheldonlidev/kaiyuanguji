@@ -10,6 +10,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/markdown_theme.dart';
 import '../../../../core/layout/layout_shell.dart';
 import '../../../../core/widgets/table_of_contents.dart';
+import '../../../../core/utils/page_title.dart';
 
 /// 通用阅读页面
 /// 根据传入的文件名加载并显示对应的 Markdown 内容
@@ -84,6 +85,9 @@ class _ReaderPageState extends State<ReaderPage> {
 
       // 提取目录
       final tocItems = TocExtractor.extractToc(content.content);
+
+      // 更新浏览器标签标题
+      setPageTitle('$finalTitle - 开源古籍');
 
       setState(() {
         _content = content.copyWith(title: finalTitle);

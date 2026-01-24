@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/layout/layout_shell.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/markdown_theme.dart';
+import '../../../../core/utils/page_title.dart';
 import '../../data/book_index_model.dart';
 import '../../data/book_index_service.dart';
 
@@ -52,6 +53,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
       // 获取内容
       final content = await BookIndexService.fetchBookContent(item);
       if (!mounted) return;
+
+      // 更新浏览器标签标题
+      setPageTitle('${item.name} - 开源古籍');
+
       setState(() {
         _bookItem = item;
         _content = content;
