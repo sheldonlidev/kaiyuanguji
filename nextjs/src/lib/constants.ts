@@ -11,8 +11,19 @@ export const SITE_DESCRIPTION =
 
 // GitHub 仓库地址
 export const GITHUB_ORG = "open-guji";
-export const GITHUB_BOOK_INDEX_DRAFT = `https://raw.githubusercontent.com/${GITHUB_ORG}/book-index-draft/main/index.json`;
-export const GITHUB_BOOK_INDEX = `https://raw.githubusercontent.com/${GITHUB_ORG}/book-index/main/index.json`;
+export const GITHUB_BASE = "https://raw.githubusercontent.com";
+export const GITHUB_BOOK_INDEX_DRAFT = `${GITHUB_BASE}/${GITHUB_ORG}/book-index-draft/main/index.json`;
+export const GITHUB_BOOK_INDEX = `${GITHUB_BASE}/${GITHUB_ORG}/book-index/main/index.json`;
+
+// Gitee 仓库地址
+export const GITEE_ORG = "open-guji";
+export const GITEE_BASE = "https://gitee.com";
+export const GITEE_BOOK_INDEX_DRAFT = `${GITEE_BASE}/${GITEE_ORG}/book-index-draft/raw/main/index.json`;
+export const GITEE_BOOK_INDEX = `${GITEE_BASE}/${GITEE_ORG}/book-index/raw/main/index.json`;
+
+// 数据源类型
+export type DataSource = 'github' | 'gitee';
+export const SOURCE_COOKIE_NAME = 'og_data_source';
 
 // 导航菜单
 export const NAV_ITEMS = [

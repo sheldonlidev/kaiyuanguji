@@ -1,146 +1,133 @@
 import { BookIndexItem, BookResourceType, BookIndexResponse } from '@/types';
+import {
+  DataSource,
+  GITHUB_BOOK_INDEX, GITHUB_BOOK_INDEX_DRAFT, GITHUB_BASE, GITHUB_ORG,
+  GITEE_BOOK_INDEX, GITEE_BOOK_INDEX_DRAFT, GITEE_BASE, GITEE_ORG
+} from '@/lib/constants';
 
-// GitHub 数据源 URL
-const DRAFT_INDEX_URL = 'https://raw.githubusercontent.com/open-guji/book-index-draft/main/index.json';
-const OFFICIAL_INDEX_URL = 'https://raw.githubusercontent.com/open-guji/book-index/main/index.json';
-
-// 内存缓存
-let cachedItems: BookIndexItem[] | null = null;
+// 内存缓存 (按数据源缓存)
+let cachedItems: Record<string, BookIndexItem[]> = {};
 
 /**
- * 从 GitHub 获取索引数据
+ * 从数据源获取索引数据
  */
-async function fetchIndexFromGitHub(url: string, isDraft: boolean): Promise<BookIndexItem[]> {
-  const response = await fetch(url, {
-    cache: 'no-store', // 禁用缓存，确保获取最新数据
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch from ${url}: ${response.statusText}`);
-  }
-
-  const data: BookIndexResponse = await response.json();
-  const items: BookIndexItem[] = [];
-
-  // 解析 books
-  if (data.books) {
-    Object.values(data.books).forEach((book) => {
-      items.push({
-        id: book.id,
-        name: book.title,
-        type: BookResourceType.BOOK,
-        isDraft,
-        rawPath: book.path,
-        author: book.author,
-        collection: book.collection,
-        year: book.year,
-        holder: book.holder,
-      });
+async function fetchIndexFromSource(url: string, isDraft: boolean): Promise<BookIndexItem[]> {
+  try {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      // 设置超时，防止 GitHub 在国内卡死导致整个流程挂掉
+      signal: AbortSignal.timeout(5000),
     });
-  }
 
-  // 解析 collections
-  if (data.collections) {
-    Object.values(data.collections).forEach((collection) => {
-      items.push({
-        id: collection.id,
-        name: collection.title,
-        type: BookResourceType.COLLECTION,
-        isDraft,
-        rawPath: collection.path,
-        author: collection.author,
-        year: collection.year,
+    if (!response.ok) {
+      throw new Error(`Failed to fetch from ${url}: ${response.statusText}`);
+    }
+
+    const data: BookIndexResponse = await response.json();
+    const items: BookIndexItem[] = [];
+
+    // 解析项目
+    const processItems = (record: any, type: BookResourceType) => {
+      if (!record) return;
+      Object.values(record).forEach((book: any) => {
+        items.push({
+          id: book.id,
+          name: book.title || book.name,
+          type: type,
+          isDraft,
+          rawPath: book.path,
+          author: book.author,
+          collection: book.collection,
+          year: book.year,
+          holder: book.holder,
+        });
       });
-    });
-  }
+    };
 
-  // 解析 works
-  if (data.works) {
-    Object.values(data.works).forEach((work) => {
-      items.push({
-        id: work.id,
-        name: work.title,
-        type: BookResourceType.WORK,
-        isDraft,
-        rawPath: work.path,
-        author: work.author,
-        year: work.year,
-      });
-    });
-  }
+    processItems(data.books, BookResourceType.BOOK);
+    processItems(data.collections, BookResourceType.COLLECTION);
+    processItems(data.works, BookResourceType.WORK);
 
-  return items;
+    return items;
+  } catch (err) {
+    throw err;
+  }
 }
 
 /**
- * 获取所有古籍（含缓存）
+ * 获取所有古籍（支持指定数据源）
  */
-export async function fetchAllBooks(): Promise<BookIndexItem[]> {
+export async function fetchAllBooks(source: DataSource = 'github'): Promise<BookIndexItem[]> {
   // 返回缓存
-  if (cachedItems) {
-    return cachedItems;
+  if (cachedItems[source]) {
+    return cachedItems[source];
   }
 
   const allItems: BookIndexItem[] = [];
+  const urls = source === 'github'
+    ? { draft: GITHUB_BOOK_INDEX_DRAFT, official: GITHUB_BOOK_INDEX }
+    : { draft: GITEE_BOOK_INDEX_DRAFT, official: GITEE_BOOK_INDEX };
 
-  // 获取草稿版（失败不影响流程）
+  // 获取草稿版
   try {
-    const draftItems = await fetchIndexFromGitHub(DRAFT_INDEX_URL, true);
+    const draftItems = await fetchIndexFromSource(urls.draft, true);
     allItems.push(...draftItems);
   } catch (error) {
-    console.warn('Failed to fetch draft index:', error);
+    console.warn(`Failed to fetch draft index from ${source}:`, error);
   }
 
   // 获取正式版
   try {
-    const officialItems = await fetchIndexFromGitHub(OFFICIAL_INDEX_URL, false);
+    const officialItems = await fetchIndexFromSource(urls.official, false);
     allItems.push(...officialItems);
   } catch (error) {
-    console.warn('Official index not available (this is expected if it hasn\'t been initialized):', error);
+    console.warn(`Failed to fetch official index from ${source}:`, error);
   }
 
-  // 缓存结果
   // 去重：如果同一个 ID 既在草稿又在正式版，优先保留正式版
   const uniqueItemsMap = new Map<string, BookIndexItem>();
-
-  // 先放草稿
   allItems.forEach(item => {
     uniqueItemsMap.set(item.id, item);
   });
 
-  // 后放正式版（覆盖草稿）
-  // 注意：在之前的 logic 中，allItems 已经按顺序 push 了草稿和正式版
-  // 我们直接用 allItems 重新构建 map 即可
   const finalItems = Array.from(uniqueItemsMap.values());
-
-  cachedItems = finalItems;
+  cachedItems[source] = finalItems;
   return finalItems;
 }
 
 /**
  * 根据 ID 查找古籍
  */
-export async function findBookById(id: string): Promise<BookIndexItem | null> {
-  const allBooks = await fetchAllBooks();
+export async function findBookById(id: string, source: DataSource = 'github'): Promise<BookIndexItem | null> {
+  const allBooks = await fetchAllBooks(source);
   return allBooks.find((book) => book.id === id) || null;
 }
 
 /**
  * 获取古籍内容（Markdown）
  */
-export async function fetchBookContent(book: BookIndexItem): Promise<string> {
-  const baseUrl = book.isDraft
-    ? 'https://raw.githubusercontent.com/open-guji/book-index-draft/main'
-    : 'https://raw.githubusercontent.com/open-guji/book-index/main';
+export async function fetchBookContent(book: BookIndexItem, source: DataSource = 'github'): Promise<string> {
+  let baseUrl = '';
+
+  if (source === 'github') {
+    baseUrl = book.isDraft
+      ? `${GITHUB_BASE}/${GITHUB_ORG}/book-index-draft/main`
+      : `${GITHUB_BASE}/${GITHUB_ORG}/book-index/main`;
+  } else {
+    baseUrl = book.isDraft
+      ? `${GITEE_BASE}/${GITEE_ORG}/book-index-draft/raw/main`
+      : `${GITEE_BASE}/${GITEE_ORG}/book-index/raw/main`;
+  }
 
   const url = `${baseUrl}/${book.rawPath}`;
 
   const response = await fetch(url, {
     cache: 'no-store',
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch book content: ${response.statusText}`);
+    throw new Error(`Failed to fetch book content from ${source}: ${response.statusText}`);
   }
 
   return response.text();
@@ -149,26 +136,26 @@ export async function fetchBookContent(book: BookIndexItem): Promise<string> {
 /**
  * 根据 ID 获取古籍内容
  */
-export async function fetchContentById(id: string): Promise<string | null> {
-  const book = await findBookById(id);
+export async function fetchContentById(id: string, source: DataSource = 'github'): Promise<string | null> {
+  const book = await findBookById(id, source);
   if (!book) {
     return null;
   }
-  return fetchBookContent(book);
+  return fetchBookContent(book, source);
 }
 
 /**
  * 清除缓存
  */
 export function clearCache(): void {
-  cachedItems = null;
+  cachedItems = {};
 }
 
 /**
  * 搜索古籍（按名称或 ID）
  */
-export async function searchBooks(query: string): Promise<BookIndexItem[]> {
-  const allBooks = await fetchAllBooks();
+export async function searchBooks(query: string, source: DataSource = 'github'): Promise<BookIndexItem[]> {
+  const allBooks = await fetchAllBooks(source);
 
   if (!query.trim()) {
     return allBooks;

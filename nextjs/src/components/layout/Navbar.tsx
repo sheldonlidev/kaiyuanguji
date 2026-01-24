@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import SourceToggle from '../common/SourceToggle';
 
 const navItems = [
   { label: '首页', href: '/' },
@@ -56,43 +57,51 @@ export default function Navbar({ onMobileMenuToggle }: NavbarProps) {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={(e) => handleAnchorClick(e, item.href)}
-                className={`
-                  px-4 py-2 text-sm tracking-wide transition-colors rounded-md
-                  ${isActive(item.href)
-                    ? 'text-vermilion font-bold'
-                    : 'text-ink hover:text-vermilion'
-                  }
-                `}
-              >
-                {item.label}
-              </Link>
-            ))}
+          <div className="hidden md:flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={(e) => handleAnchorClick(e, item.href)}
+                  className={`
+                    px-4 py-2 text-sm tracking-wide transition-colors rounded-md
+                    ${isActive(item.href)
+                      ? 'text-vermilion font-bold'
+                      : 'text-ink hover:text-vermilion'
+                    }
+                  `}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+
+            <div className="h-4 w-[1px] bg-border mx-2" />
+            <SourceToggle />
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={onMobileMenuToggle}
-            className="md:hidden p-2 text-ink hover:text-vermilion transition-colors"
-            aria-label="打开菜单"
-          >
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          {/* Mobile Menu Button + Toggle */}
+          <div className="flex items-center gap-2 md:hidden">
+            <SourceToggle />
+            <button
+              onClick={onMobileMenuToggle}
+              className="p-2 text-ink hover:text-vermilion transition-colors"
+              aria-label="打开菜单"
             >
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
         </div>
       </nav>
     </header>

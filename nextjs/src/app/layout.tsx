@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Noto_Serif_SC } from "next/font/google";
 import "./globals.css";
-
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "@/lib/constants";
+import { SourceProvider } from "@/components/common/SourceContext";
 
 const notoSerif = Noto_Serif_SC({
   subsets: ["latin"],
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     images: [
       {
-        url: "/images/og-image.png", // 假设会有这个图片
+        url: "/images/og-image.png",
         width: 1200,
         height: 630,
         alt: SITE_NAME,
@@ -52,10 +52,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // 静态导出环境下不能在 Server Component 中使用 cookies()
   return (
     <html lang="zh-CN">
       <body className={`antialiased ${notoSerif.variable}`}>
-        {children}
+        <SourceProvider>
+          {children}
+        </SourceProvider>
       </body>
     </html>
   );

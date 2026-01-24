@@ -8,7 +8,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const lastModified = new Date();
 
     // 1. 静态路由
-    const staticRoutes = NAV_ITEMS.filter(item => !item.isExternal).map((item) => ({
+    const staticRoutes = NAV_ITEMS.map((item) => ({
         url: `${SITE_URL}${item.href}`,
         lastModified,
         changeFrequency: 'weekly' as const,
