@@ -2,6 +2,8 @@
  * 应用常量
  */
 
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.kaiyuanguji.com";
+
 // 网站信息
 export const SITE_NAME = "开源古籍";
 export const SITE_DESCRIPTION =

@@ -16,14 +16,29 @@ export async function generateMetadata({
 
   try {
     const book = await findBookById(id);
+    const title = book ? `${book.name} - 古籍详情` : `古籍详情 - ${id}`;
+    const description = book ? `查看古籍《${book.name}》的详细信息。` : `查看古籍 ${id} 的详细信息。`;
+
     return {
-      title: book ? `${book.name} - 古籍详情` : `古籍详情 - ${id}`,
-      description: book ? `查看古籍《${book.name}》的详细信息。` : `查看古籍 ${id} 的详细信息。`,
+      title,
+      description,
+      alternates: {
+        canonical: `/book-index/${id}`,
+      },
+      openGraph: {
+        title,
+        description,
+        type: 'book',
+        url: `/book-index/${id}`,
+      },
     };
   } catch {
     return {
       title: `古籍详情 - ${id}`,
       description: `查看古籍 ${id} 的详细信息。`,
+      alternates: {
+        canonical: `/book-index/${id}`,
+      },
     };
   }
 }
@@ -75,10 +90,9 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
             <span
               className={`
                 px-2 py-1 text-xs font-medium rounded
-                ${
-                  book.isDraft
-                    ? 'text-orange-600 bg-orange-50'
-                    : 'text-green-600 bg-green-50'
+                ${book.isDraft
+                  ? 'text-orange-600 bg-orange-50'
+                  : 'text-green-600 bg-green-50'
                 }
               `}
             >

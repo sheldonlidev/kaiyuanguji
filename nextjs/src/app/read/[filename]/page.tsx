@@ -16,14 +16,29 @@ export async function generateMetadata({
 
   try {
     const { frontmatter } = await getMarkdownContent(decodedFilename);
+    const title = frontmatter.title || decodedFilename;
+    const description = frontmatter.description || `阅读《${decodedFilename}》`;
+
     return {
-      title: frontmatter.title || decodedFilename,
-      description: frontmatter.description || `阅读《${decodedFilename}》`,
+      title,
+      description,
+      alternates: {
+        canonical: `/read/${filename}`,
+      },
+      openGraph: {
+        title,
+        description,
+        type: 'article',
+        url: `/read/${filename}`,
+      },
     };
   } catch {
     return {
       title: decodedFilename,
       description: `阅读《${decodedFilename}》`,
+      alternates: {
+        canonical: `/read/${filename}`,
+      },
     };
   }
 }

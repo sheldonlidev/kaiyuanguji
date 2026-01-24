@@ -1,20 +1,41 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "@/lib/constants";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "开源古籍",
-    template: "%s - 开源古籍",
+    default: SITE_NAME,
+    template: `%s - ${SITE_NAME}`,
   },
-  description:
-    "开源古籍项目通过技术手段推动古籍的数字化、校对及开源存储，致力于让传统文化触手可及。",
+  description: SITE_DESCRIPTION,
   keywords: ["古籍", "数字化", "开源", "传统文化", "古籍数字化"],
-  authors: [{ name: "开源古籍" }],
+  authors: [{ name: SITE_NAME }],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
-    title: "开源古籍",
-    description: "让古籍数字化更简单",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    images: [
+      {
+        url: "/images/og-image.png", // 假设会有这个图片
+        width: 1200,
+        height: 630,
+        alt: SITE_NAME,
+      },
+    ],
     type: "website",
     locale: "zh_CN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    images: ["/images/og-image.png"],
   },
 };
 
