@@ -4,6 +4,7 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Components } from 'react-markdown';
+import BidLink from '@/components/book-index/BidLink';
 
 interface MarkdownRendererProps {
   content: string;
@@ -51,13 +52,9 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
           if (match) {
             const id = match[1];
             return (
-              <Link
-                href={`/book-index/${id}`}
-                className="text-vermilion hover:underline font-medium decoration-dotted underline-offset-4"
-                {...props}
-              >
+              <BidLink id={id} {...props}>
                 {children}
-              </Link>
+              </BidLink>
             );
           }
         } catch (e) {
