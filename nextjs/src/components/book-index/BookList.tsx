@@ -1,22 +1,152 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { BookIndexItem, BookResourceType } from '@/types';
-import { fetchAllBooks, searchBooks, getTypeLabel } from '@/services/bookIndex';
+import { fetchAllBooks } from '@/services/bookIndex';
 import BookListItem from './BookListItem';
+import { useSource } from '../common/SourceContext';
 
 const FILTER_TYPES = [
-  { label: '全部', value: 'all' },
-  { label: '作品', value: BookResourceType.WORK },
-  { label: '丛编', value: BookResourceType.COLLECTION },
-  { label: '书', value: BookResourceType.BOOK },
+  { id: 'all', label: '全部' },
+  { id: BookResourceType.WORK, label: '作品' },
+  { id: BookResourceType.COLLECTION, label: '丛编' },
+  { id: BookResourceType.BOOK, label: '书' },
 ];
 
+const ITEMS_PER_PAGE = 9; // 3行 x 3列
+
+// 分页组件
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
+  return (
+    <div className="flex items-center justify-center gap-2 mt-6">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="px-3 py-1.5 text-sm rounded border border-border/60
+                   disabled:opacity-40 disabled:cursor-not-allowed
+                   hover:border-vermilion/40 hover:text-vermilion transition-all"
+      >
+        上一页
+      </button>
+
+      <div className="flex items-center gap-1">
+        {getPageNumbers().map((page, idx) =>
+          typeof page === 'number' ? (
+            <button
+              key={idx}
+              onClick={() => onPageChange(page)}
+              className={`w-8 h-8 text-sm rounded transition-all
+                ${currentPage === page
+                  ? 'bg-ink text-white'
+                  : 'hover:bg-paper/60 text-secondary'
+                }`}
+            >
+              {page}
+            </button>
+          ) : (
+            <span key={idx} className="px-1 text-secondary">
+              {page}
+            </span>
+          )
+        )}
+      </div>
+
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="px-3 py-1.5 text-sm rounded border border-border/60
+                   disabled:opacity-40 disabled:cursor-not-allowed
+                   hover:border-vermilion/40 hover:text-vermilion transition-all"
+      >
+        下一页
+      </button>
+    </div>
+  );
+}
+
+// 分类区块组件
+function CategorySection({
+  title,
+  books,
+  showPagination = false,
+}: {
+  title: string;
+  books: BookIndexItem[];
+  showPagination?: boolean;
+}) {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = showPagination ? Math.ceil(books.length / ITEMS_PER_PAGE) : 1;
+  const displayBooks = showPagination
+    ? books.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+    : books;
+
+  if (books.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 px-2">
+        <h2 className="text-lg font-semibold text-ink">{title}</h2>
+        <span className="text-sm text-secondary">({books.length})</span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {displayBooks.map((book) => (
+          <BookListItem key={book.id} book={book} />
+        ))}
+      </div>
+
+      {showPagination && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function BookList() {
+  const { source } = useSource();
   const [allBooks, setAllBooks] = useState<BookIndexItem[]>([]);
-  const [filteredBooks, setFilteredBooks] = useState<BookIndexItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,9 +156,8 @@ export default function BookList() {
       try {
         setIsLoading(true);
         setError(null);
-        const books = await fetchAllBooks();
+        const books = await fetchAllBooks(source);
         setAllBooks(books);
-        setFilteredBooks(books);
       } catch (err) {
         setError(err instanceof Error ? err.message : '加载失败');
       } finally {
@@ -37,174 +166,127 @@ export default function BookList() {
     };
 
     loadBooks();
-  }, []);
+  }, [source]);
 
-  // 搜索和过滤处理
-  useEffect(() => {
-    const performFiltering = () => {
-      let results = allBooks;
-
-      // 1. 类型过滤
-      if (selectedType !== 'all') {
-        results = results.filter(book => book.type === selectedType);
-      }
-
-      // 2. 搜索过滤
-      if (searchQuery.trim()) {
-        const lowerQuery = searchQuery.toLowerCase();
-        results = results.filter(
-          book =>
-            book.name.toLowerCase().includes(lowerQuery) ||
-            book.id.toLowerCase().includes(lowerQuery)
-        );
-      }
-
-      setFilteredBooks(results);
+  // 按类型分组
+  const { works, books, collections } = useMemo(() => {
+    return {
+      works: allBooks.filter((b) => b.type === BookResourceType.WORK),
+      books: allBooks.filter((b) => b.type === BookResourceType.BOOK),
+      collections: allBooks.filter((b) => b.type === BookResourceType.COLLECTION),
     };
+  }, [allBooks]);
 
-    performFiltering();
-  }, [searchQuery, selectedType, allBooks]);
+  // 过滤后的书籍
+  const filteredBooks = useMemo(() => {
+    if (selectedType === 'all') return allBooks;
+    return allBooks.filter((book) => book.type === selectedType);
+  }, [selectedType, allBooks]);
 
-  // 重试加载
+  // 重载/重试
   const handleRetry = () => {
     setIsLoading(true);
     setError(null);
-    fetchAllBooks()
+    fetchAllBooks(source)
       .then((books) => {
         setAllBooks(books);
       })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : '加载失败');
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      .catch((err) => setError(err instanceof Error ? err.message : '加载失败'))
+      .finally(() => setIsLoading(false));
   };
 
-  // 加载状态
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20" aria-live="polite">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-vermilion mb-4" />
-        <p className="text-secondary">正在加载古籍列表...</p>
-      </div>
-    );
-  }
-
-  // 错误状态
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20" aria-live="assertive">
-        <div className="text-4xl mb-4">⚠️</div>
-        <p className="text-secondary mb-4">加载失败: {error}</p>
-        <button
-          onClick={handleRetry}
-          className="px-6 py-2 bg-vermilion text-white rounded-lg hover:bg-vermilion/90"
-        >
-          重试
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
-      {/* 标题 */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-ink mb-3 tracking-wide">
-          古籍索引
-        </h1>
-        <p className="text-secondary text-base md:text-lg">
-          标准化的古籍数字资源索引系统
-        </p>
-      </div>
-
-      {/* 搜索和筛选区域 */}
-      <div className="mb-8 space-y-4">
-        {/* 搜索框 */}
+    <div className="px-6 py-8 md:px-12 lg:px-16 space-y-8">
+      {/* Search and Filters */}
+      <div className="bg-white p-6 rounded-2xl border border-border/40 shadow-sm space-y-4">
         <div className="relative">
           <input
             type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="搜索古籍名称或 ID..."
-            aria-label="搜索古籍名称或 ID"
-            className="w-full px-4 py-3 pr-10 border border-border rounded-lg
-                     focus:outline-none focus:border-vermilion focus:ring-2 focus:ring-vermilion/20
-                     bg-white text-ink transition-all"
+            placeholder="搜索功能正在开发中。。。"
+            disabled
+            className="w-full pl-10 pr-4 py-3 bg-paper/30 border border-border/40 rounded-xl
+                     text-secondary/60 cursor-not-allowed"
           />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-ink transition-colors"
-              aria-label="清除搜索"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary/30"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
         </div>
 
-        {/* 类型切换（Chips） */}
-        <div className="flex flex-wrap gap-2">
-          {FILTER_TYPES.map((type) => (
-            <button
-              key={type.value}
-              onClick={() => setSelectedType(type.value)}
-              className={`
-                px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200
-                ${selectedType === type.value
-                  ? 'bg-vermilion text-white shadow-sm'
-                  : 'bg-paper text-secondary border border-border hover:border-vermilion/50 hover:text-vermilion'
-                }
-              `}
-            >
-              {type.label}
-            </button>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-secondary mr-2">类型筛选:</span>
+            {FILTER_TYPES.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setSelectedType(type.id)}
+                className={`
+                  px-4 py-1.5 text-xs rounded-full border transition-all
+                  ${selectedType === type.id
+                    ? 'bg-ink text-white border-ink'
+                    : 'bg-transparent text-secondary border-border/60 hover:border-vermilion/40 hover:text-vermilion'
+                  }
+                `}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <p className="text-secondary text-sm">
+              找到 <span className="text-ink font-semibold">{filteredBooks.length}</span> 部相关古籍
+              {source === 'github' ? ' (GitHub 源)' : ' (Gitee 源)'}
+            </p>
+            {error && (
+              <button
+                onClick={handleRetry}
+                className="text-vermilion text-xs hover:underline"
+              >
+                重试
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-paper/30 h-48 rounded-2xl animate-pulse" />
           ))}
         </div>
-      </div>
-
-      {/* 结果统计 */}
-      <div className="flex items-center justify-between mb-4 text-sm text-secondary">
-        <span>
-          {searchQuery || selectedType !== 'all' ? '筛选结果' : '最近收录'}: {filteredBooks.length} 条记录
-        </span>
-      </div>
-
-      {/* 列表 */}
-      {filteredBooks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-paper/30 rounded-2xl border border-dashed border-border">
-          <div className="text-4xl mb-4">🔍</div>
-          <p className="text-secondary">
-            {searchQuery || selectedType !== 'all' ? '未找到匹配的古籍' : '暂无收录古籍'}
-          </p>
-          {(searchQuery || selectedType !== 'all') && (
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedType('all');
-              }}
-              className="mt-4 text-vermilion hover:underline text-sm font-medium"
-            >
-              清除所有筛选条件
-            </button>
-          )}
+      ) : selectedType === 'all' ? (
+        // 不筛选时：分三部分显示
+        <div className="space-y-8">
+          <CategorySection title="作品" books={works} />
+          <CategorySection title="书" books={books} showPagination />
+          <CategorySection title="丛编" books={collections} />
         </div>
-      ) : (
-        <div className="grid gap-4">
+      ) : filteredBooks.length > 0 ? (
+        // 筛选时：显示筛选结果
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredBooks.map((book) => (
             <BookListItem key={book.id} book={book} />
           ))}
+        </div>
+      ) : (
+        <div className="py-20 text-center bg-paper/20 rounded-3xl border border-dashed border-border/40">
+          <p className="text-secondary">未找到匹配的古籍</p>
+          <button
+            onClick={() => setSelectedType('all')}
+            className="mt-4 text-vermilion text-sm hover:underline"
+          >
+            清除所有过滤条件
+          </button>
         </div>
       )}
     </div>

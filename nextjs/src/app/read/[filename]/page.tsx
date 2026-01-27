@@ -1,10 +1,8 @@
-import LayoutWrapper from '@/components/layout/LayoutWrapper';
-import MarkdownPage from '@/components/markdown/MarkdownPage';
-import { getMarkdownContent, extractTOC } from '@/lib/markdown';
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 import fs from 'fs';
 import path from 'path';
+import MarkdownPageContent from '@/components/markdown/MarkdownPageContent';
+import { getMarkdownContent } from '@/lib/markdown';
 
 interface ReadPageProps {
   params: Promise<{ filename: string }>;
@@ -62,22 +60,5 @@ export async function generateStaticParams() {
 
 export default async function ReadPage({ params }: ReadPageProps) {
   const { filename } = await params;
-  const decodedFilename = decodeURIComponent(filename).replace(/\.md$/, '');
-
-  try {
-    const { content, frontmatter } = await getMarkdownContent(decodedFilename);
-    const toc = extractTOC(content);
-
-    return (
-      <LayoutWrapper>
-        <MarkdownPage
-          content={content}
-          toc={toc}
-          title={frontmatter.title}
-        />
-      </LayoutWrapper>
-    );
-  } catch (error) {
-    notFound();
-  }
+  return <MarkdownPageContent filename={filename} />;
 }
