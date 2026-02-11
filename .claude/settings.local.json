@@ -1,13 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(flutter pub get:*)",
-      "Bash(flutter build:*)",
-      "Bash(flutter clean:*)",
-      "Bash(flutter analyze:*)",
-      "Bash(git add:*)",
-      "Bash(grep:*)",
-      "Bash(dart bin/check_assets.dart:*)"
+      "Edit",
+      "Read",
+      "Write",
+      "Bash(*)",
+      "WebSearch",
+      "WebFetch(domain:ctan.math.utah.edu)",
+      "WebFetch(domain:lists.w3.org)"
+    ],
+    "additionalDirectories": [
+      "/tmp",
+      "/home/lishaodong/workspace/luatex-cn"
     ]
   }
 }

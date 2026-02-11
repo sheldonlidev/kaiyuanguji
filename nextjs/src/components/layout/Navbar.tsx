@@ -7,10 +7,10 @@ import { useState } from 'react';
 import SourceToggle from '../common/SourceToggle';
 
 const navItems = [
+  { label: '首页', href: '/' },
   { label: '路线图', href: '/roadmap' },
-  { label: '古籍排版', href: 'https://github.com/open-guji/luatex-cn', external: true },
+  { label: '古籍助手', href: '/assistant' },
   { label: '古籍索引', href: '/book-index' },
-  { label: '参与开发', href: '/#join' },
 ];
 
 interface NavbarProps {
@@ -60,32 +60,20 @@ export default function Navbar({ onMobileMenuToggle }: NavbarProps) {
           <div className="hidden md:flex items-center gap-4">
             <div className="flex items-center gap-2">
               {navItems.map((item) => (
-                'external' in item && item.external ? (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 text-sm tracking-wide transition-colors rounded-md text-ink hover:text-vermilion"
-                  >
-                    {item.label}
-                  </a>
-                ) : (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={(e) => handleAnchorClick(e, item.href)}
-                    className={`
-                      px-4 py-2 text-sm tracking-wide transition-colors rounded-md
-                      ${isActive(item.href)
-                        ? 'text-vermilion font-bold'
-                        : 'text-ink hover:text-vermilion'
-                      }
-                    `}
-                  >
-                    {item.label}
-                  </Link>
-                )
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={(e) => handleAnchorClick(e, item.href)}
+                  className={`
+                    px-4 py-2 text-sm tracking-wide transition-colors rounded-md
+                    ${isActive(item.href)
+                      ? 'text-vermilion font-bold'
+                      : 'text-ink hover:text-vermilion'
+                    }
+                  `}
+                >
+                  {item.label}
+                </Link>
               ))}
             </div>
 
