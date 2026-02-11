@@ -1,4 +1,4 @@
-import { BookIndexItem, BookResourceType, BookIndexResponse } from '@/types';
+import { BookIndexItem, BookResourceType, BookIndexResponse, BookIndexDetailData } from '@/types';
 import {
   DataSource,
   GITHUB_BOOK_INDEX, GITHUB_BOOK_INDEX_DRAFT, JSDELIVR_FASTLY, JSDELIVR_CDN, GITHUB_ORG, GITHUB_BASE,
@@ -125,9 +125,9 @@ export async function findBookById(id: string, source: DataSource = 'github'): P
 }
 
 /**
- * 获取古籍内容（Markdown）
+ * 获取古籍详情（JSON）
  */
-export async function fetchBookContent(book: BookIndexItem, source: DataSource = 'github'): Promise<string> {
+export async function fetchBookDetail(book: BookIndexItem, source: DataSource = 'github'): Promise<BookIndexDetailData> {
   // 1. 海外 (GitHub): 直接访问 raw.githubusercontent.com
   if (source === 'github') {
     const baseUrl = book.isDraft
@@ -142,9 +142,9 @@ export async function fetchBookContent(book: BookIndexItem, source: DataSource =
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch book content from ${source}: ${response.statusText}`);
+      throw new Error(`Failed to fetch book detail from ${source}: ${response.statusText}`);
     }
-    return response.text();
+    return response.json();
   }
 
   // 2. 国内 (Gitee): 使用 jsDelivr 加速 GitHub 源
@@ -163,7 +163,7 @@ export async function fetchBookContent(book: BookIndexItem, source: DataSource =
     if (!response.ok) {
       throw new Error(`Fastly status: ${response.status}`);
     }
-    return await response.text();
+    return await response.json();
 
   } catch (error) {
     console.warn('Fastly fetch failed, trying fallback CDN:', error);
@@ -173,21 +173,21 @@ export async function fetchBookContent(book: BookIndexItem, source: DataSource =
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch book content from CDN: ${response.statusText}`);
+      throw new Error(`Failed to fetch book detail from CDN: ${response.statusText}`);
     }
-    return await response.text();
+    return await response.json();
   }
 }
 
 /**
- * 根据 ID 获取古籍内容
+ * 根据 ID 获取古籍详情
  */
-export async function fetchContentById(id: string, source: DataSource = 'github'): Promise<string | null> {
+export async function fetchDetailById(id: string, source: DataSource = 'github'): Promise<BookIndexDetailData | null> {
   const book = await findBookById(id, source);
   if (!book) {
     return null;
   }
-  return fetchBookContent(book, source);
+  return fetchBookDetail(book, source);
 }
 
 /**
