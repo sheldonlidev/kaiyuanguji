@@ -14,12 +14,14 @@ export default function PlatformSection() {
             {/* Left Content */}
             <div className="flex-1 space-y-4">
               {/* Tags */}
-              <div className="flex flex-wrap gap-2 text-sm text-vermilion font-medium">
-                <span>VS Code 扩展</span>
-                <span>·</span>
-                <span>本地优先</span>
-                <span>·</span>
-                <span>工具集成</span>
+              <div className="flex flex-wrap gap-2 text-sm font-medium">
+                <span className="text-vermilion">VS Code 扩展</span>
+                <span className="text-vermilion">·</span>
+                <span className="text-vermilion">本地优先</span>
+                <span className="text-vermilion">·</span>
+                <span className="text-vermilion">工具集成</span>
+                <span className="text-vermilion">·</span>
+                <span className="px-2 py-0.5 bg-orange-100 text-orange-600 rounded text-xs">正在开发中</span>
               </div>
 
               {/* Description */}
@@ -30,16 +32,14 @@ export default function PlatformSection() {
               </p>
             </div>
 
-            {/* Right Button */}
-            <a
-              href="https://github.com/open-guji/guji-platform"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-8 py-5 bg-ink text-white rounded-lg font-medium
-                       hover:bg-ink/90 transition-colors whitespace-nowrap"
+            {/* Right Button - Disabled */}
+            <button
+              disabled
+              className="px-8 py-5 bg-secondary/20 text-secondary rounded-lg font-medium
+                       cursor-not-allowed whitespace-nowrap"
             >
-              查看项目
-            </a>
+              开发中
+            </button>
           </div>
         </div>
       </div>
