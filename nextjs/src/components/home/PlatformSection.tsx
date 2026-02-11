@@ -2,7 +2,7 @@ import SectionHeader from './SectionHeader';
 
 export default function PlatformSection() {
   return (
-    <section className="py-12 px-6 bg-[#F0F8FF]">
+    <section className="py-12 px-6 bg-paper">
       <div className="max-w-7xl mx-auto">
         <SectionHeader
           title="古籍平台"

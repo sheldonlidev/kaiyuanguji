@@ -9,7 +9,7 @@ const features = [
 
 export default function BookIndexSection() {
   return (
-    <section className="py-12 px-6 bg-[#F0FFF4]">
+    <section className="py-12 px-6 bg-white">
       <div className="max-w-7xl mx-auto">
         <SectionHeader
           title="古籍索引"
