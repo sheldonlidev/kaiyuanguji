@@ -9,11 +9,11 @@ const features = [
 
 export default function BookIndexSection() {
   return (
-    <section className="py-12 px-6 bg-paper">
+    <section className="py-12 px-6 bg-[#F0FFF4]">
       <div className="max-w-7xl mx-auto">
         <SectionHeader
           title="古籍索引"
-          subtitle="标准化的古籍数字资源索引系统"
+          subtitle="标准化的古籍数字资源索引与版本管理系统"
         />
 
         <div className="max-w-[900px] mx-auto bg-white rounded-2xl p-8 border border-border/50 shadow-md">
@@ -30,8 +30,9 @@ export default function BookIndexSection() {
 
             {/* Description */}
             <p className="text-base md:text-lg text-ink leading-relaxed">
-              古籍索引建立了一套标准化的ID体系，用于解决古籍数字化中的层级分类和版本关联问题。
-              支持作品、丛编、书三个层级，实现古籍资源的统一检索与管理。
+              古籍索引建立了标准化的 ID 体系，解决古籍数字化中的层级分类和版本关联问题。
+              支持作品（Work）、丛编（Collection）、书（Book）三个层级，实现古籍资源的统一检索、版本追溯与关联管理。
+              为古籍数字化项目提供可靠的元数据基础设施。
             </p>
 
             {/* Feature Chips */}
@@ -73,8 +74,9 @@ export default function BookIndexSection() {
 
               {/* Description */}
               <p className="text-lg text-ink leading-relaxed">
-                古籍索引建立了一套标准化的ID体系，用于解决古籍数字化中的层级分类和版本关联问题。
-                支持作品、丛编、书三个层级，实现古籍资源的统一检索与管理。
+                古籍索引建立了标准化的 ID 体系，解决古籍数字化中的层级分类和版本关联问题。
+                支持作品（Work）、丛编（Collection）、书（Book）三个层级，实现古籍资源的统一检索、版本追溯与关联管理。
+                为古籍数字化项目提供可靠的元数据基础设施。
               </p>
 
               {/* Feature Chips */}
