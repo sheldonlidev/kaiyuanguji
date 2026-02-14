@@ -12,29 +12,7 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
     const [texSource, setTexSource] = useState<string>('');
     const [imageManifest, setImageManifest] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [renderError, setRenderError] = useState<string | null>(null);
-    const shadowHostRef = useRef<HTMLDivElement>(null);
-    const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
-
-    // Initialize Shadow Root once
-    useEffect(() => {
-        if (shadowHostRef.current && !shadowRoot) {
-            const root = shadowHostRef.current.attachShadow({ mode: 'open' });
-
-            // Add base.css to shadow root
-            const baseLink = document.createElement('link');
-            baseLink.rel = 'stylesheet';
-            baseLink.href = '/webtex-css/base.css';
-            root.appendChild(baseLink);
-
-            // Create a container for the actual content inside the shadow root
-            const container = document.createElement('div');
-            container.className = 'webtex-content-container flex justify-center py-8 min-h-full';
-            root.appendChild(container);
-
-            setShadowRoot(root);
-        }
-    }, [shadowHostRef]);
+    const iframeRef = useRef<HTMLIFrameElement>(null);
 
     useEffect(() => {
         const loadAssets = async () => {
@@ -70,39 +48,63 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
         loadAssets();
     }, [id, assets]);
 
+    // Handle iframe rendering
     useEffect(() => {
-        if (!texSource || !shadowRoot) return;
+        if (!texSource || !iframeRef.current) return;
 
-        const renderTex = async () => {
+        const renderInIframe = async () => {
+            const iframe = iframeRef.current!;
+            const doc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (!doc) return;
+
             try {
-                const webtex = await import(/* webpackIgnore: true */ '/webtex-js/webtex-cn.esm.js');
-                const container = shadowRoot.querySelector('.webtex-content-container');
-                if (!container) return;
-
-                // Use renderToHTML to avoid webtex-cn calling setTemplate which affects document.head
-                const html = webtex.renderToHTML(texSource);
-                container.innerHTML = html;
-
-                // Determine template and load into shadow root
-                const firstPage = container.querySelector('.wtc-page');
-                const templateId = firstPage?.getAttribute('data-template') || 'siku-quanshu';
-
-                // Inject template CSS into shadow root if not already there
-                const cssSelector = `link[data-wtc-template="${templateId}"]`;
-                if (!shadowRoot.querySelector(cssSelector)) {
-                    const link = document.createElement('link');
-                    link.rel = 'stylesheet';
-                    link.href = `/webtex-css/${templateId}.css`;
-                    link.dataset.wtcTemplate = templateId;
-                    shadowRoot.appendChild(link);
-                }
+                // Initialize iframe content
+                doc.open();
+                doc.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <link rel="stylesheet" href="/webtex-css/base.css">
+                        <style>
+                            body { 
+                                margin: 0; 
+                                padding: 40px 20px; 
+                                background: #fafafa;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                min-height: 100vh;
+                                font-family: "Noto Serif SC", serif;
+                            }
+                            #webtex-root { width: 100%; display: flex; flex-direction: column; align-items: center; }
+                            /* Hide scrollbar for cleaner look since parent handles it */
+                            ::-webkit-scrollbar { width: 0px; background: transparent; }
+                        </style>
+                    </head>
+                    <body>
+                        <div id="webtex-root">加载中...</div>
+                        <script type="module">
+                            import { renderToDOM } from '/webtex-js/webtex-cn.esm.js';
+                            try {
+                                const tex = ${JSON.stringify(texSource)};
+                                const root = document.getElementById('webtex-root');
+                                root.innerHTML = '';
+                                renderToDOM(tex, root, { cssBasePath: '/webtex-css/' });
+                            } catch (e) {
+                                document.getElementById('webtex-root').innerText = '渲染失败: ' + e.message;
+                            }
+                        </script>
+                    </body>
+                    </html>
+                `);
+                doc.close();
             } catch (error) {
-                console.error('WebTeX rendering failed:', error);
-                setRenderError(String(error));
+                console.error('Failed to render in iframe:', error);
             }
         };
-        renderTex();
-    }, [texSource, shadowRoot]);
+
+        renderInIframe();
+    }, [texSource]);
 
     if (isLoading) {
         return <div className="p-8 text-center text-secondary">加载数字化资源中...</div>;
@@ -124,15 +126,17 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                     </pre>
                 </div>
 
-                {/* Column 2: Rendered View (Encapsulated in Shadow DOM) */}
+                {/* Column 2: Rendered View (Isolated in Iframe) */}
                 <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white shadow-sm">
                     <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest">
                         WebTeX 排版
                     </div>
-                    <div className="flex-1 overflow-auto bg-[#fafafa]">
-                        <div ref={shadowHostRef} className="webtex-viewer h-full">
-                            {!texSource && <div className="text-secondary/50 text-sm p-20 text-center">等待渲染...</div>}
-                        </div>
+                    <div className="flex-1 overflow-hidden relative bg-[#fafafa]">
+                        <iframe
+                            ref={iframeRef}
+                            className="w-full h-full border-none"
+                            title="WebTeX Preview"
+                        />
                     </div>
                 </div>
 
@@ -157,7 +161,7 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                                 </div>
                             </div>
                         ))}
-                        {!imageManifest && <div className="text-sm text-secondary p-4">无影像资源</div>}
+                        {!imageManifest && <div className="text-sm text-secondary p-4 text-center">无影像资源</div>}
                     </div>
                 </div>
             </div>
