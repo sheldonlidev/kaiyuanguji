@@ -84,50 +84,53 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
     const basePath = assets.image_manifest_url?.replace(/\/images\/image_manifest\.json$/, '') || `/books/${id}`;
 
     return (
-        <div className="flex flex-col h-[calc(100vh-250px)] mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+        <div className="flex flex-col h-[calc(100vh-180px)] mt-6 animate-in fade-in duration-500">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full pb-8">
                 {/* Column 1: TeX Source */}
-                <div className="border border-border/40 rounded-xl overflow-hidden flex flex-col bg-paper/10">
-                    <div className="bg-paper border-b border-border/40 px-4 py-2 text-xs font-semibold text-secondary uppercase tracking-wider">
-                        TeX 源码
+                <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white/50 shadow-sm">
+                    <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest flex items-center justify-between">
+                        <span>TeX 源码</span>
+                        <span className="text-[10px] opacity-50 font-mono">{assets.tex_files?.[0]}</span>
                     </div>
-                    <pre className="flex-1 overflow-auto p-4 text-sm font-mono text-ink leading-relaxed">
+                    <pre className="flex-1 overflow-auto p-5 text-sm font-mono text-ink leading-relaxed selection:bg-vermilion/10">
                         {texSource || '无 TeX 源码'}
                     </pre>
                 </div>
 
                 {/* Column 2: Rendered View */}
-                <div className="border border-border/40 rounded-xl overflow-hidden flex flex-col bg-white">
-                    <div className="bg-paper border-b border-border/40 px-4 py-2 text-xs font-semibold text-secondary uppercase tracking-wider">
+                <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white shadow-sm">
+                    <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest">
                         WebTeX 排版
                     </div>
-                    <div className="flex-1 overflow-auto bg-[#f8f8f8]">
-                        <div ref={viewerRef} className="webtex-viewer p-4">
-                            {/* WebTeX content will be injected here */}
+                    <div className="flex-1 overflow-auto bg-[#fafafa]">
+                        <div ref={viewerRef} className="webtex-viewer flex justify-center py-8 min-h-full">
+                            {!texSource && <div className="text-secondary/50 text-sm mt-20">等待渲染...</div>}
                         </div>
                     </div>
                 </div>
 
                 {/* Column 3: Images */}
-                <div className="border border-border/40 rounded-xl overflow-hidden flex flex-col bg-paper/10">
-                    <div className="bg-paper border-b border-border/40 px-4 py-2 text-xs font-semibold text-secondary uppercase tracking-wider">
+                <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white/50 shadow-sm">
+                    <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest">
                         影印本影像
                     </div>
-                    <div className="flex-1 overflow-auto p-4 space-y-4">
-                        {imageManifest?.volumes?.[0]?.files?.slice(0, 10).map((file: any, index: number) => (
-                            <div key={index} className="space-y-2">
-                                <img
-                                    src={`${basePath}/images/vol01/${file.filename}`}
-                                    alt={`Page ${file.page}`}
-                                    className="w-full rounded border border-border/40 shadow-sm"
-                                    loading="lazy"
-                                />
-                                <div className="text-center text-xs text-secondary">
+                    <div className="flex-1 overflow-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-border">
+                        {imageManifest?.volumes?.[0]?.files?.slice(0, 20).map((file: any, index: number) => (
+                            <div key={index} className="space-y-3 group">
+                                <div className="relative overflow-hidden rounded-lg border border-border/40 shadow-sm group-hover:border-vermilion/30 transition-colors">
+                                    <img
+                                        src={`${basePath}/images/vol01/${file.filename}`}
+                                        alt={`Page ${file.page}`}
+                                        className="w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
+                                        loading="lazy"
+                                    />
+                                </div>
+                                <div className="text-center text-xs font-medium text-secondary/70 tracking-wider">
                                     第 {file.page} 页
                                 </div>
                             </div>
                         ))}
-                        {!imageManifest && <div className="text-sm text-secondary">无影像资源</div>}
+                        {!imageManifest && <div className="text-sm text-secondary p-4">无影像资源</div>}
                     </div>
                 </div>
             </div>
