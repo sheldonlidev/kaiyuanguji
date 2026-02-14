@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'export',
+  // Transpile webtex-cn source directly (local package)
+  transpilePackages: ['webtex-cn'],
   // GitHub Pages 部署路径处理
   basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
 

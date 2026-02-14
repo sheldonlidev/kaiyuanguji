@@ -96,11 +96,10 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                     document.head.appendChild(baseLink);
                 }
 
-                const module = await import(/* webpackIgnore: true */ '/webtex-js/webtex-cn.esm.js');
-                const webtex = module.renderToDOM ? module : module.default;
+                const webtex = await import('webtex-cn');
 
                 if (!webtex || typeof webtex.renderToDOM !== 'function') {
-                    setRenderStatus(`模块加载失败: renderToDOM 不存在。keys=${Object.keys(module).join(',')}`);
+                    setRenderStatus(`模块加载失败: renderToDOM 不存在。keys=${Object.keys(webtex || {}).join(',')}`);
                     return;
                 }
 
