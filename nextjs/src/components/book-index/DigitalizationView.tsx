@@ -12,25 +12,31 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
     const [texSource, setTexSource] = useState<string>('');
     const [imageManifest, setImageManifest] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [renderStatus, setRenderStatus] = useState<string>('等待数据...');
     const viewerRef = useRef<HTMLDivElement>(null);
 
+    // Load assets
     useEffect(() => {
         const loadAssets = async () => {
             try {
                 setIsLoading(true);
                 const basePath = assets.image_manifest_url?.replace(/\/images\/image_manifest\.json$/, '') || `/books/${id}`;
 
-                // Fetch TeX source
                 if (assets.tex_files && assets.tex_files.length > 0) {
                     const texUrl = `${basePath}/tex/${assets.tex_files[0]}`;
+                    setRenderStatus(`正在获取: ${texUrl}`);
                     const res = await fetch(texUrl);
                     if (res.ok) {
                         const text = await res.text();
                         setTexSource(text);
+                        setRenderStatus(`获取成功, ${text.length} 字符`);
+                    } else {
+                        setRenderStatus(`获取失败: HTTP ${res.status}`);
                     }
+                } else {
+                    setRenderStatus('无 TeX 文件');
                 }
 
-                // Fetch Image Manifest
                 if (assets.image_manifest_url) {
                     const res = await fetch(assets.image_manifest_url);
                     if (res.ok) {
@@ -38,16 +44,9 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                         setImageManifest(data);
                     }
                 }
-
-                // Load base.css for webtex-cn (global head is okay now because it's scoped)
-                if (typeof document !== 'undefined' && !document.querySelector('link[href="/webtex-css/base.css"]')) {
-                    const link = document.createElement('link');
-                    link.rel = 'stylesheet';
-                    link.href = '/webtex-css/base.css';
-                    document.head.appendChild(link);
-                }
             } catch (error) {
                 console.error('Failed to load digital assets:', error);
+                setRenderStatus(`加载失败: ${error}`);
             } finally {
                 setIsLoading(false);
             }
@@ -56,26 +55,56 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
         loadAssets();
     }, [id, assets]);
 
-    // Handle standard DOM rendering
+    // Render WebTeX — depends on both texSource AND isLoading,
+    // because the viewerRef div only exists when isLoading is false.
     useEffect(() => {
-        if (!texSource || !viewerRef.current) return;
+        if (isLoading || !texSource) {
+            return;
+        }
+        if (!viewerRef.current) {
+            setRenderStatus('viewerRef 未挂载');
+            return;
+        }
+
+        setRenderStatus('正在加载 webtex-cn 库...');
 
         const renderTex = async () => {
             try {
-                const webtex = await import(/* webpackIgnore: true */ '/webtex-js/webtex-cn.esm.js');
+                // Ensure base.css is loaded
+                if (!document.querySelector('link[href="/webtex-css/base.css"]')) {
+                    const baseLink = document.createElement('link');
+                    baseLink.rel = 'stylesheet';
+                    baseLink.href = '/webtex-css/base.css';
+                    document.head.appendChild(baseLink);
+                }
+
+                const module = await import(/* webpackIgnore: true */ '/webtex-js/webtex-cn.esm.js');
+                const webtex = module.renderToDOM ? module : module.default;
+
+                if (!webtex || typeof webtex.renderToDOM !== 'function') {
+                    setRenderStatus(`模块加载失败: renderToDOM 不存在。keys=${Object.keys(module).join(',')}`);
+                    return;
+                }
+
+                setRenderStatus('正在排版...');
+
                 if (viewerRef.current) {
-                    viewerRef.current.innerHTML = '';
                     webtex.renderToDOM(texSource, viewerRef.current, {
                         cssBasePath: '/webtex-css/'
                     });
+
+                    const count = viewerRef.current.children.length;
+                    setRenderStatus(`排版完成, ${count} 个元素`);
                 }
             } catch (error) {
-                console.error('WebTeX rendering failed:', error);
+                const msg = error instanceof Error ? error.message : String(error);
+                setRenderStatus(`排版失败: ${msg}`);
+                console.error('[DigitalizationView] Render error:', error);
             }
         };
 
         renderTex();
-    }, [texSource]);
+    }, [texSource, isLoading]);
 
     if (isLoading) {
         return <div className="p-8 text-center text-secondary">加载数字化资源中...</div>;
@@ -97,14 +126,17 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                     </pre>
                 </div>
 
-                {/* Column 2: Rendered View (Scoped Normal HTML/CSS) */}
+                {/* Column 2: Rendered View */}
                 <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white shadow-sm">
-                    <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest">
-                        WebTeX 排版
+                    <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest flex items-center justify-between">
+                        <span>WebTeX 排版</span>
+                        <span className="text-[10px] text-vermilion font-mono">{renderStatus}</span>
                     </div>
                     <div className="flex-1 overflow-auto bg-[#fafafa]">
-                        <div ref={viewerRef} className="wtc-scope" />
-                        {!texSource && <div className="text-secondary/50 text-sm p-20 text-center">等待渲染...</div>}
+                        <div
+                            ref={viewerRef}
+                            className="wtc-scope"
+                        />
                     </div>
                 </div>
 
