@@ -14,6 +14,18 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
     const [isLoading, setIsLoading] = useState(true);
     const [renderStatus, setRenderStatus] = useState<string>('等待数据...');
     const viewerRef = useRef<HTMLDivElement>(null);
+    const renderContainerRef = useRef<HTMLDivElement>(null);
+    const imagesRef = useRef<HTMLDivElement>(null);
+
+    // Pagination state
+    const [pageTex, setPageTex] = useState(1);
+    const [pageImages, setPageImages] = useState(1);
+    const [isSynced, setIsSynced] = useState(true);
+    const [texTotal, setTexTotal] = useState(0);
+    const [imagesTotal, setImagesTotal] = useState(0);
+
+    const PAGE_HEIGHT = 1140; // Approx weight of .wtc-page + margins
+
 
     // Panel visibility: which of the 3 panels are shown
     const [panels, setPanels] = useState({
@@ -96,7 +108,7 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                     document.head.appendChild(baseLink);
                 }
 
-                const webtex = await import('@/lib/webtex-cn/index.js');
+                const webtex = await import('webtex-cn');
 
                 if (!webtex || typeof webtex.renderToDOM !== 'function') {
                     setRenderStatus(`模块加载失败: renderToDOM 不存在。keys=${Object.keys(webtex || {}).join(',')}`);
@@ -110,6 +122,16 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                         cssBasePath: '/webtex-css/'
                     });
 
+                    // Force consistent height on all rendered pages
+                    const pages = viewerRef.current.querySelectorAll('.wtc-page');
+                    setTexTotal(pages.length);
+                    pages.forEach((page: any, idx: number) => {
+                        page.style.height = `${PAGE_HEIGHT - 40}px`; // Account for margin
+                        page.style.margin = '20px auto';
+                        // Show only active page
+                        page.style.display = (idx + 1 === pageTex) ? 'block' : 'none';
+                    });
+
                     const count = viewerRef.current.children.length;
                     setRenderStatus(`排版完成, ${count} 个元素`);
                 }
@@ -121,7 +143,29 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
         };
 
         renderTex();
-    }, [texSource, isLoading]);
+    }, [texSource, isLoading, pageTex]); // Add pageTex to dependencies to update visibility
+
+    // Update images total when manifest changes
+    useEffect(() => {
+        if (imageManifest?.volumes?.[0]?.files) {
+            setImagesTotal(imageManifest.volumes[0].files.length);
+        }
+    }, [imageManifest]);
+
+    // Navigation handlers
+    const goToPage = (view: 'tex' | 'images', newPage: number) => {
+        const total = view === 'tex' ? texTotal : imagesTotal;
+        const boundedPage = Math.max(1, Math.min(newPage, total));
+
+        if (isSynced) {
+            setPageTex(boundedPage);
+            setPageImages(boundedPage);
+        } else {
+            if (view === 'tex') setPageTex(boundedPage);
+            else setPageImages(boundedPage);
+        }
+    };
+
 
     if (isLoading) {
         return <div className="p-8 text-center text-secondary">加载数字化资源中...</div>;
@@ -172,7 +216,10 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                         <span>WebTeX 排版</span>
                         <span className="text-[10px] text-vermilion font-mono">{renderStatus}</span>
                     </div>
-                    <div className="flex-1 overflow-auto bg-[#fafafa]">
+                    <div
+                        ref={renderContainerRef}
+                        className="flex-1 overflow-hidden bg-[#fafafa]"
+                    >
                         <div
                             ref={viewerRef}
                             className="wtc-scope"
@@ -185,26 +232,113 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                     <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest">
                         影印本影像
                     </div>
-                    <div className="flex-1 overflow-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-border">
-                        {imageManifest?.volumes?.[0]?.files?.slice(0, 20).map((file: any, index: number) => (
-                            <div key={index} className="space-y-3 group">
-                                <div className="relative overflow-hidden rounded-lg border border-border/40 shadow-sm group-hover:border-vermilion/30 transition-colors">
-                                    <img
-                                        src={`${basePath}/images/vol01/${file.filename}`}
-                                        alt={`Page ${file.page}`}
-                                        className="w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
-                                        loading="lazy"
-                                    />
+                    <div
+                        ref={imagesRef}
+                        className="flex-1 overflow-hidden bg-[#fafafa]"
+                    >
+                        <div className="flex flex-col items-center justify-center h-full overflow-auto">
+                            {imageManifest?.volumes?.[0]?.files?.[pageImages - 1] && (
+                                <div
+                                    className="flex flex-col items-center justify-center bg-white"
+                                    style={{
+                                        height: '100%',
+                                        width: '100%',
+                                        flexShrink: 0
+                                    }}
+                                >
+                                    <div className="relative w-full h-full overflow-hidden flex items-center justify-center p-8">
+                                        <img
+                                            src={`${basePath}/images/vol01/${imageManifest.volumes[0].files[pageImages - 1].filename}`}
+                                            alt={`Page ${pageImages}`}
+                                            className="max-w-full max-h-full object-contain shadow-lg border border-border/40"
+                                            loading="lazy"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="text-center text-xs font-medium text-secondary/70 tracking-wider">
-                                    第 {file.page} 页
-                                </div>
-                            </div>
-                        ))}
+                            )}
+                        </div>
                         {!imageManifest && <div className="text-sm text-secondary p-4 text-center">无影像资源</div>}
                     </div>
+                </div>
+            </div>
+
+            {/* Pagination Control Bar */}
+            <div className="flex items-center justify-center gap-6 px-4 py-3 bg-paper border border-border/60 rounded-xl shadow-inner-sm mt-2">
+                {/* Tex Controls */}
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-secondary uppercase tracking-widest mr-2">排版</span>
+                    <button
+                        onClick={() => goToPage('tex', pageTex - 1)}
+                        disabled={pageTex <= 1}
+                        className="p-1 px-2 rounded bg-white border border-border/60 hover:bg-ink/5 disabled:opacity-30 transition-colors"
+                    >
+                        ←
+                    </button>
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-border/60 rounded text-sm font-mono">
+                        <input
+                            type="number"
+                            value={pageTex}
+                            onChange={(e) => goToPage('tex', parseInt(e.target.value) || 1)}
+                            className="w-10 text-center bg-transparent border-none outline-none focus:ring-0"
+                        />
+                        <span className="text-secondary/40">/</span>
+                        <span className="text-secondary/60">{texTotal}</span>
+                    </div>
+                    <button
+                        onClick={() => goToPage('tex', pageTex + 1)}
+                        disabled={pageTex >= texTotal}
+                        className="p-1 px-2 rounded bg-white border border-border/60 hover:bg-ink/5 disabled:opacity-30 transition-colors"
+                    >
+                        →
+                    </button>
+                </div>
+
+                {/* Sync Toggle */}
+                <button
+                    onClick={() => {
+                        const next = !isSynced;
+                        setIsSynced(next);
+                        if (next) setPageImages(pageTex);
+                    }}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all border
+                        ${isSynced
+                            ? 'bg-vermilion/10 text-vermilion border-vermilion/30 shadow-sm'
+                            : 'bg-ink/5 text-secondary border-border/60'}`}
+                >
+                    <span className="text-sm">{isSynced ? '🔒' : '🔓'}</span>
+                    同步锁定
+                </button>
+
+                {/* Image Controls */}
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-secondary uppercase tracking-widest mr-2">影像</span>
+                    <button
+                        onClick={() => goToPage('images', pageImages - 1)}
+                        disabled={pageImages <= 1}
+                        className="p-1 px-2 rounded bg-white border border-border/60 hover:bg-ink/5 disabled:opacity-30 transition-colors"
+                    >
+                        ←
+                    </button>
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-border/60 rounded text-sm font-mono">
+                        <input
+                            type="number"
+                            value={pageImages}
+                            onChange={(e) => goToPage('images', parseInt(e.target.value) || 1)}
+                            className="w-10 text-center bg-transparent border-none outline-none focus:ring-0"
+                        />
+                        <span className="text-secondary/40">/</span>
+                        <span className="text-secondary/60">{imagesTotal}</span>
+                    </div>
+                    <button
+                        onClick={() => goToPage('images', pageImages + 1)}
+                        disabled={pageImages >= imagesTotal}
+                        className="p-1 px-2 rounded bg-white border border-border/60 hover:bg-ink/5 disabled:opacity-30 transition-colors"
+                    >
+                        →
+                    </button>
                 </div>
             </div>
         </div>
     );
 }
+
