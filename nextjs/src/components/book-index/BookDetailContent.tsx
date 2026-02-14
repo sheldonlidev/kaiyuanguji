@@ -356,7 +356,8 @@ export default function BookDetailContent({ id }: BookDetailContentProps) {
 
     return (
         <LayoutWrapper>
-            <div className="max-w-4xl mx-auto px-6 py-8">
+            {/* Header section — centered */}
+            <div className="max-w-4xl mx-auto px-6 pt-8">
                 {/* Top Control Bar */}
                 <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
                     <div className="flex items-center gap-3 flex-wrap">
@@ -416,22 +417,22 @@ export default function BookDetailContent({ id }: BookDetailContentProps) {
                         </button>
                     )}
                 </div>
-
-                {/* Content */}
-                {activeTab === 'basic' ? (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {detail.type === 'book' && renderBookDetail(detail as BookDetailData)}
-                        {detail.type === 'collection' && renderCollectionDetail(detail as CollectionDetailData)}
-                        {detail.type === 'work' && renderWorkDetail(detail as WorkDetailData)}
-                    </div>
-                ) : (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {detail.digital_assets && (
-                            <DigitalizationView id={id} assets={detail.digital_assets} />
-                        )}
-                    </div>
-                )}
             </div>
+
+            {/* Content section */}
+            {activeTab === 'basic' ? (
+                <div className="max-w-4xl mx-auto px-6 pb-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {detail.type === 'book' && renderBookDetail(detail as BookDetailData)}
+                    {detail.type === 'collection' && renderCollectionDetail(detail as CollectionDetailData)}
+                    {detail.type === 'work' && renderWorkDetail(detail as WorkDetailData)}
+                </div>
+            ) : (
+                <div className="px-4 pb-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {detail.digital_assets && (
+                        <DigitalizationView id={id} assets={detail.digital_assets} />
+                    )}
+                </div>
+            )}
         </LayoutWrapper>
     );
 }
