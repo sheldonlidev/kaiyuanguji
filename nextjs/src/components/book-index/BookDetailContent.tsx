@@ -283,6 +283,34 @@ export default function BookDetailContent({ id }: BookDetailContentProps) {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('basic');
 
+    // Handle initial hash on mount
+    useEffect(() => {
+        const hash = window.location.hash.replace('#', '') as TabType;
+        if (hash === 'basic' || hash === 'digital') {
+            setActiveTab(hash);
+        }
+
+        const handleHashChange = () => {
+            const newHash = window.location.hash.replace('#', '') as TabType;
+            if (newHash === 'basic' || newHash === 'digital') {
+                setActiveTab(newHash);
+            }
+        };
+
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
+
+    // Sync state to hash
+    useEffect(() => {
+        if (activeTab) {
+            const currentHash = window.location.hash.replace('#', '');
+            if (currentHash !== activeTab) {
+                window.history.replaceState(null, '', `#${activeTab}`);
+            }
+        }
+    }, [activeTab]);
+
     useEffect(() => {
         const loadData = async () => {
             try {
