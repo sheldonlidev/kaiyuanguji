@@ -19,7 +19,8 @@
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "remark-frontmatter": "^5.0.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "webtex-cn": "file:../../webtex-cn"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

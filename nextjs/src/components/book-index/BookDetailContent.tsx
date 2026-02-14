@@ -20,6 +20,9 @@ import SourceToggle from '@/components/common/SourceToggle';
 import { useSource } from '@/components/common/SourceContext';
 import { notFound } from 'next/navigation';
 import BidLink from './BidLink';
+import DigitalizationView from './DigitalizationView';
+
+type TabType = 'basic' | 'digital';
 
 interface BookDetailContentProps {
     id: string;
@@ -278,6 +281,7 @@ export default function BookDetailContent({ id }: BookDetailContentProps) {
     const [detail, setDetail] = useState<BookIndexDetailData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<TabType>('basic');
 
     useEffect(() => {
         const loadData = async () => {
@@ -356,10 +360,49 @@ export default function BookDetailContent({ id }: BookDetailContentProps) {
                     {detail.title}
                 </h1>
 
-                {/* Type-specific rendering */}
-                {detail.type === 'book' && renderBookDetail(detail as BookDetailData)}
-                {detail.type === 'collection' && renderCollectionDetail(detail as CollectionDetailData)}
-                {detail.type === 'work' && renderWorkDetail(detail as WorkDetailData)}
+                {/* Tabs */}
+                <div className="flex border-b border-border/40 mt-6 overflow-x-auto no-scrollbar">
+                    <button
+                        onClick={() => setActiveTab('basic')}
+                        className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeTab === 'basic' ? 'text-vermilion' : 'text-secondary hover:text-ink'
+                            }`}
+                    >
+                        基本信息
+                        {activeTab === 'basic' && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-vermilion" />
+                        )}
+                    </button>
+                    {detail.digital_assets && (
+                        <button
+                            onClick={() => setActiveTab('digital')}
+                            className={`px-6 py-3 text-sm font-medium transition-colors relative flex items-center gap-2 ${activeTab === 'digital' ? 'text-vermilion' : 'text-secondary hover:text-ink'
+                                }`}
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            数字化
+                            {activeTab === 'digital' && (
+                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-vermilion" />
+                            )}
+                        </button>
+                    )}
+                </div>
+
+                {/* Content */}
+                {activeTab === 'basic' ? (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {detail.type === 'book' && renderBookDetail(detail as BookDetailData)}
+                        {detail.type === 'collection' && renderCollectionDetail(detail as CollectionDetailData)}
+                        {detail.type === 'work' && renderWorkDetail(detail as WorkDetailData)}
+                    </div>
+                ) : (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {detail.digital_assets && (
+                            <DigitalizationView id={id} assets={detail.digital_assets} />
+                        )}
+                    </div>
+                )}
             </div>
         </LayoutWrapper>
     );

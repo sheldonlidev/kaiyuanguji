@@ -72,6 +72,11 @@ export interface ResourceLink {
   details?: string;
 }
 
+export interface DigitalAssets {
+  tex_files?: string[];
+  image_manifest_url?: string;
+}
+
 /**
  * 基础详情数据接口
  */
@@ -86,6 +91,7 @@ export interface BaseDetailData {
   page_count?: PageCount;
   text_resources?: ResourceLink[];
   image_resources?: ResourceLink[];
+  digital_assets?: DigitalAssets;
   sources?: SourceRef[];
 }
 

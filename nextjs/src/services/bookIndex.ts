@@ -144,7 +144,8 @@ export async function fetchBookDetail(book: BookIndexItem, source: DataSource = 
     if (!response.ok) {
       throw new Error(`Failed to fetch book detail from ${source}: ${response.statusText}`);
     }
-    return response.json();
+    const detail = await response.json();
+    return await enrichDetailWithDigitalAssets(book.id, detail);
   }
 
   // 2. 国内 (Gitee): 使用 jsDelivr 加速 GitHub 源
@@ -163,7 +164,8 @@ export async function fetchBookDetail(book: BookIndexItem, source: DataSource = 
     if (!response.ok) {
       throw new Error(`Fastly status: ${response.status}`);
     }
-    return await response.json();
+    const detail = await response.json();
+    return await enrichDetailWithDigitalAssets(book.id, detail);
 
   } catch (error) {
     console.warn('Fastly fetch failed, trying fallback CDN:', error);
@@ -175,8 +177,30 @@ export async function fetchBookDetail(book: BookIndexItem, source: DataSource = 
     if (!response.ok) {
       throw new Error(`Failed to fetch book detail from CDN: ${response.statusText}`);
     }
-    return await response.json();
+    const detail = await response.json();
+    return await enrichDetailWithDigitalAssets(book.id, detail);
   }
+}
+
+/**
+ * 为详情数据注入数字化资源信息
+ */
+async function enrichDetailWithDigitalAssets(id: string, detail: BookIndexDetailData): Promise<BookIndexDetailData> {
+  if (typeof window !== 'undefined') {
+    try {
+      const manifestUrl = `/books/${id}/images/image_manifest.json`;
+      const testRes = await fetch(manifestUrl, { method: 'HEAD' });
+      if (testRes.ok) {
+        detail.digital_assets = {
+          image_manifest_url: manifestUrl,
+          tex_files: ['ce01.tex']
+        };
+      }
+    } catch (e) {
+      // 忽略
+    }
+  }
+  return detail;
 }
 
 /**
