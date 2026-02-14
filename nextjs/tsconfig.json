@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "webtex-cn": [
+        "../../webtex-cn/src/index.js"
       ]
     },
     "target": "ES2017",
