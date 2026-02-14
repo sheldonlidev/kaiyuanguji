@@ -32,7 +32,6 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
     };
 
     const visibleCount = [panels.tex, panels.render, panels.images].filter(Boolean).length;
-    const gridCols = visibleCount === 1 ? 'grid-cols-1' : visibleCount === 2 ? 'grid-cols-2' : 'grid-cols-3';
 
     // Load assets
     useEffect(() => {
@@ -155,63 +154,57 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                 ))}
             </div>
 
-            {/* Panel grid */}
-            <div className={`grid ${gridCols} gap-4 h-full pb-4 transition-all duration-300`}>
+            {/* Panel grid — use CSS display to hide panels so DOM content is preserved */}
+            <div className="grid gap-4 h-full pb-4 transition-all duration-300" style={{ gridTemplateColumns: `repeat(${visibleCount}, 1fr)` }}>
                 {/* Column 1: TeX Source */}
-                {panels.tex && (
-                    <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white/50 shadow-sm">
-                        <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest flex items-center justify-between">
-                            <span>TeX 源码</span>
-                            <span className="text-[10px] opacity-50 font-mono">{assets.tex_files?.[0]}</span>
-                        </div>
-                        <pre className="flex-1 overflow-auto p-5 text-sm font-mono text-ink leading-relaxed selection:bg-vermilion/10">
-                            {texSource || '无 TeX 源码'}
-                        </pre>
+                <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white/50 shadow-sm" style={{ display: panels.tex ? undefined : 'none' }}>
+                    <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest flex items-center justify-between">
+                        <span>TeX 源码</span>
+                        <span className="text-[10px] opacity-50 font-mono">{assets.tex_files?.[0]}</span>
                     </div>
-                )}
+                    <pre className="flex-1 overflow-auto p-5 text-sm font-mono text-ink leading-relaxed selection:bg-vermilion/10">
+                        {texSource || '无 TeX 源码'}
+                    </pre>
+                </div>
 
                 {/* Column 2: Rendered View */}
-                {panels.render && (
-                    <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white shadow-sm">
-                        <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest flex items-center justify-between">
-                            <span>WebTeX 排版</span>
-                            <span className="text-[10px] text-vermilion font-mono">{renderStatus}</span>
-                        </div>
-                        <div className="flex-1 overflow-auto bg-[#fafafa]">
-                            <div
-                                ref={viewerRef}
-                                className="wtc-scope"
-                            />
-                        </div>
+                <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white shadow-sm" style={{ display: panels.render ? undefined : 'none' }}>
+                    <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest flex items-center justify-between">
+                        <span>WebTeX 排版</span>
+                        <span className="text-[10px] text-vermilion font-mono">{renderStatus}</span>
                     </div>
-                )}
+                    <div className="flex-1 overflow-auto bg-[#fafafa]">
+                        <div
+                            ref={viewerRef}
+                            className="wtc-scope"
+                        />
+                    </div>
+                </div>
 
                 {/* Column 3: Images */}
-                {panels.images && (
-                    <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white/50 shadow-sm">
-                        <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest">
-                            影印本影像
-                        </div>
-                        <div className="flex-1 overflow-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-border">
-                            {imageManifest?.volumes?.[0]?.files?.slice(0, 20).map((file: any, index: number) => (
-                                <div key={index} className="space-y-3 group">
-                                    <div className="relative overflow-hidden rounded-lg border border-border/40 shadow-sm group-hover:border-vermilion/30 transition-colors">
-                                        <img
-                                            src={`${basePath}/images/vol01/${file.filename}`}
-                                            alt={`Page ${file.page}`}
-                                            className="w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
-                                            loading="lazy"
-                                        />
-                                    </div>
-                                    <div className="text-center text-xs font-medium text-secondary/70 tracking-wider">
-                                        第 {file.page} 页
-                                    </div>
-                                </div>
-                            ))}
-                            {!imageManifest && <div className="text-sm text-secondary p-4 text-center">无影像资源</div>}
-                        </div>
+                <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white/50 shadow-sm" style={{ display: panels.images ? undefined : 'none' }}>
+                    <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest">
+                        影印本影像
                     </div>
-                )}
+                    <div className="flex-1 overflow-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-border">
+                        {imageManifest?.volumes?.[0]?.files?.slice(0, 20).map((file: any, index: number) => (
+                            <div key={index} className="space-y-3 group">
+                                <div className="relative overflow-hidden rounded-lg border border-border/40 shadow-sm group-hover:border-vermilion/30 transition-colors">
+                                    <img
+                                        src={`${basePath}/images/vol01/${file.filename}`}
+                                        alt={`Page ${file.page}`}
+                                        className="w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
+                                        loading="lazy"
+                                    />
+                                </div>
+                                <div className="text-center text-xs font-medium text-secondary/70 tracking-wider">
+                                    第 {file.page} 页
+                                </div>
+                            </div>
+                        ))}
+                        {!imageManifest && <div className="text-sm text-secondary p-4 text-center">无影像资源</div>}
+                    </div>
+                </div>
             </div>
         </div>
     );
