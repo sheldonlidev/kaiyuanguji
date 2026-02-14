@@ -12,7 +12,7 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
     const [texSource, setTexSource] = useState<string>('');
     const [imageManifest, setImageManifest] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const iframeRef = useRef<HTMLIFrameElement>(null);
+    const viewerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const loadAssets = async () => {
@@ -20,7 +20,7 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                 setIsLoading(true);
                 const basePath = assets.image_manifest_url?.replace(/\/images\/image_manifest\.json$/, '') || `/books/${id}`;
 
-                // 1. Fetch TeX source
+                // Fetch TeX source
                 if (assets.tex_files && assets.tex_files.length > 0) {
                     const texUrl = `${basePath}/tex/${assets.tex_files[0]}`;
                     const res = await fetch(texUrl);
@@ -30,13 +30,21 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                     }
                 }
 
-                // 2. Fetch Image Manifest
+                // Fetch Image Manifest
                 if (assets.image_manifest_url) {
                     const res = await fetch(assets.image_manifest_url);
                     if (res.ok) {
                         const data = await res.json();
                         setImageManifest(data);
                     }
+                }
+
+                // Load base.css for webtex-cn (global head is okay now because it's scoped)
+                if (typeof document !== 'undefined' && !document.querySelector('link[href="/webtex-css/base.css"]')) {
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = '/webtex-css/base.css';
+                    document.head.appendChild(link);
                 }
             } catch (error) {
                 console.error('Failed to load digital assets:', error);
@@ -48,62 +56,25 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
         loadAssets();
     }, [id, assets]);
 
-    // Handle iframe rendering
+    // Handle standard DOM rendering
     useEffect(() => {
-        if (!texSource || !iframeRef.current) return;
+        if (!texSource || !viewerRef.current) return;
 
-        const renderInIframe = async () => {
-            const iframe = iframeRef.current!;
-            const doc = iframe.contentDocument || iframe.contentWindow?.document;
-            if (!doc) return;
-
+        const renderTex = async () => {
             try {
-                // Initialize iframe content
-                doc.open();
-                doc.write(`
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <link rel="stylesheet" href="/webtex-css/base.css">
-                        <style>
-                            body { 
-                                margin: 0; 
-                                padding: 40px 20px; 
-                                background: #fafafa;
-                                display: flex;
-                                flex-direction: column;
-                                align-items: center;
-                                min-height: 100vh;
-                                font-family: "Noto Serif SC", serif;
-                            }
-                            #webtex-root { width: 100%; display: flex; flex-direction: column; align-items: center; }
-                            /* Hide scrollbar for cleaner look since parent handles it */
-                            ::-webkit-scrollbar { width: 0px; background: transparent; }
-                        </style>
-                    </head>
-                    <body>
-                        <div id="webtex-root">加载中...</div>
-                        <script type="module">
-                            import { renderToDOM } from '/webtex-js/webtex-cn.esm.js';
-                            try {
-                                const tex = ${JSON.stringify(texSource)};
-                                const root = document.getElementById('webtex-root');
-                                root.innerHTML = '';
-                                renderToDOM(tex, root, { cssBasePath: '/webtex-css/' });
-                            } catch (e) {
-                                document.getElementById('webtex-root').innerText = '渲染失败: ' + e.message;
-                            }
-                        </script>
-                    </body>
-                    </html>
-                `);
-                doc.close();
+                const webtex = await import(/* webpackIgnore: true */ '/webtex-js/webtex-cn.esm.js');
+                if (viewerRef.current) {
+                    viewerRef.current.innerHTML = '';
+                    webtex.renderToDOM(texSource, viewerRef.current, {
+                        cssBasePath: '/webtex-css/'
+                    });
+                }
             } catch (error) {
-                console.error('Failed to render in iframe:', error);
+                console.error('WebTeX rendering failed:', error);
             }
         };
 
-        renderInIframe();
+        renderTex();
     }, [texSource]);
 
     if (isLoading) {
@@ -126,17 +97,14 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                     </pre>
                 </div>
 
-                {/* Column 2: Rendered View (Isolated in Iframe) */}
+                {/* Column 2: Rendered View (Scoped Normal HTML/CSS) */}
                 <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white shadow-sm">
                     <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest">
                         WebTeX 排版
                     </div>
-                    <div className="flex-1 overflow-hidden relative bg-[#fafafa]">
-                        <iframe
-                            ref={iframeRef}
-                            className="w-full h-full border-none"
-                            title="WebTeX Preview"
-                        />
+                    <div className="flex-1 overflow-auto bg-[#fafafa]">
+                        <div ref={viewerRef} className="wtc-scope" />
+                        {!texSource && <div className="text-secondary/50 text-sm p-20 text-center">等待渲染...</div>}
                     </div>
                 </div>
 
