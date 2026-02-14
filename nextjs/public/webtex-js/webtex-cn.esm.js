@@ -274,7 +274,10 @@ var commandRegistry = {
   "LtcDebugOn": { args: [], ignore: true },
   "LtcDebugOff": { args: [], ignore: true },
   // Seal stamp (simplified)
-  "\u5370\u7AE0": { args: ["optional", "required"], node: "stamp" }
+  "\u5370\u7AE0": { args: ["optional", "required"], node: "stamp" },
+  // Catalog/Index entries
+  "\u6761\u76EE": { args: ["optional", "required"], node: "muluItem" },
+  "\u689D\u76EE": { alias: "\u6761\u76EE" }
 };
 var environmentRegistry = {
   "document": { node: "body" },
@@ -340,6 +343,7 @@ var NodeType = {
   STAMP: "stamp",
   MATH: "math",
   PARAGRAPH_BREAK: "paragraphBreak",
+  MULU_ITEM: "muluItem",
   UNKNOWN: "unknown"
 };
 function createNode(type, props = {}) {
@@ -373,10 +377,15 @@ function parseKeyValue(str) {
     }
   }
   if (currentKey.trim()) {
+    const key = currentKey.trim();
     if (inValue) {
-      result[currentKey.trim()] = currentValue.trim();
+      result[key] = currentValue.trim();
     } else {
-      result[currentKey.trim()] = "true";
+      if (/^\d+$/.test(key)) {
+        result["value"] = key;
+      } else {
+        result[key] = "true";
+      }
     }
   }
   return result;
@@ -736,6 +745,7 @@ var Parser = class _Parser {
       "list": NodeType.LIST,
       "body": "body",
       "stamp": NodeType.STAMP,
+      "muluItem": NodeType.MULU_ITEM,
       "relativeTaitou": NodeType.TAITOU
     };
     return map[nodeName] || NodeType.UNKNOWN;
@@ -840,7 +850,9 @@ var LayoutMarker = {
   LIST_START: "_listStart",
   LIST_END: "_listEnd",
   LIST_ITEM_START: "_listItemStart",
-  LIST_ITEM_END: "_listItemEnd"
+  LIST_ITEM_END: "_listItemEnd",
+  MULU_ITEM_START: "_muluItemStart",
+  MULU_ITEM_END: "_muluItemEnd"
 };
 function newPage() {
   return { items: [], floats: [], halfBoundary: null };
@@ -985,6 +997,17 @@ var GridLayoutEngine = class {
         const level = parseInt(node.value, 10) || 0;
         this.currentRow = level;
         this.placeItem(node);
+        break;
+      }
+      case NodeType.MULU_ITEM: {
+        if (this.currentRow > 0) {
+          this.advanceColumn();
+        }
+        const level = parseInt(node.options?.value || "0", 10);
+        this.currentRow = level;
+        this.placeMarker(LayoutMarker.MULU_ITEM_START, { level });
+        this.walkChildren(node.children);
+        this.placeMarker(LayoutMarker.MULU_ITEM_END);
         break;
       }
       case NodeType.LIST:
@@ -1278,17 +1301,18 @@ ${content}
   // New layout-based render pipeline
   // =====================================================================
   /**
-   * Render a LayoutResult into multi-page HTML.
-   * Each page becomes one wtc-page div with a complete spread.
-   *
-   * @param {object} layoutResult  Output of layout()
-   * @returns {string[]} Array of page HTML strings (one per page)
-   */
+  * Render a LayoutResult into multi-page HTML.
+  * Each layout page is split into two visual half-pages, each with its own banxin.
+  *
+  * @param {object} layoutResult  Output of layout()
+  * @returns {string[]} Array of page HTML strings (two per layout page)
+  */
   renderFromLayout(layoutResult) {
     const setupStyles = this.getSetupStylesFromCommands(layoutResult.meta.setupCommands);
     const banxin = this.renderBanxinFromMeta(layoutResult.meta);
     let carryStack = [];
-    return layoutResult.pages.map((page) => {
+    const pages = [];
+    for (const page of layoutResult.pages) {
       const boundary = page.halfBoundary ?? page.items.length;
       const rightItems = page.items.slice(0, boundary);
       const leftItems = page.items.slice(boundary);
@@ -1298,10 +1322,14 @@ ${content}
       const rightHTML = right.html;
       const leftHTML = left.html;
       const floatsHTML = page.floats.map((f) => this.renderNode(f)).join("\n");
-      return `<div class="wtc-spread"${setupStyles}>
-${floatsHTML}<div class="wtc-half-page wtc-half-right"><div class="wtc-content-border"><div class="wtc-content">${rightHTML}</div></div></div>${banxin}<div class="wtc-half-page wtc-half-left"><div class="wtc-content-border"><div class="wtc-content">${leftHTML}</div></div></div>
-</div>`;
-    });
+      pages.push(`<div class="wtc-spread wtc-spread-right"${setupStyles}>
+${floatsHTML}<div class="wtc-half-page wtc-half-right"><div class="wtc-content-border"><div class="wtc-content">${rightHTML}</div></div></div>${banxin}
+</div>`);
+      pages.push(`<div class="wtc-spread wtc-spread-left"${setupStyles}>
+<div class="wtc-half-page wtc-half-left"><div class="wtc-content-border"><div class="wtc-content">${leftHTML}</div></div></div>${banxin}
+</div>`);
+    }
+    return pages;
   }
   /**
    * Get the open tag HTML for a marker item.
@@ -1317,6 +1345,10 @@ ${floatsHTML}<div class="wtc-half-page wtc-half-right"><div class="wtc-content-b
     }
     if (type === LayoutMarker.LIST_START) return '<span class="wtc-list">';
     if (type === LayoutMarker.LIST_ITEM_START) return '<span class="wtc-list-item">';
+    if (type === LayoutMarker.MULU_ITEM_START) {
+      const level = item.level || 0;
+      return `<span class="wtc-mulu-item" style="padding-inline-start: calc(${level} * var(--wtc-grid-height))">`;
+    }
     return "";
   }
   /**
@@ -1326,13 +1358,14 @@ ${floatsHTML}<div class="wtc-half-page wtc-half-right"><div class="wtc-content-b
     if (type === LayoutMarker.PARAGRAPH_START) return "</span>";
     if (type === LayoutMarker.LIST_START) return "</span>";
     if (type === LayoutMarker.LIST_ITEM_START) return "</span>";
+    if (type === LayoutMarker.MULU_ITEM_START) return "</span>";
     return "";
   }
   /**
    * Check if a marker type is an "open" marker.
    */
   isOpenMarker(type) {
-    return type === LayoutMarker.PARAGRAPH_START || type === LayoutMarker.LIST_START || type === LayoutMarker.LIST_ITEM_START;
+    return type === LayoutMarker.PARAGRAPH_START || type === LayoutMarker.LIST_START || type === LayoutMarker.LIST_ITEM_START || type === LayoutMarker.MULU_ITEM_START;
   }
   /**
    * Check if a marker type is a "close" marker, and return its matching open type.
@@ -1341,6 +1374,7 @@ ${floatsHTML}<div class="wtc-half-page wtc-half-right"><div class="wtc-content-b
     if (type === LayoutMarker.PARAGRAPH_END) return LayoutMarker.PARAGRAPH_START;
     if (type === LayoutMarker.LIST_END) return LayoutMarker.LIST_START;
     if (type === LayoutMarker.LIST_ITEM_END) return LayoutMarker.LIST_ITEM_START;
+    if (type === LayoutMarker.MULU_ITEM_END) return LayoutMarker.MULU_ITEM_START;
     return null;
   }
   /**
