@@ -13,23 +13,34 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
     const [imageManifest, setImageManifest] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [renderError, setRenderError] = useState<string | null>(null);
-    const viewerRef = useRef<HTMLDivElement>(null);
+    const shadowHostRef = useRef<HTMLDivElement>(null);
+    const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
+
+    // Initialize Shadow Root once
+    useEffect(() => {
+        if (shadowHostRef.current && !shadowRoot) {
+            const root = shadowHostRef.current.attachShadow({ mode: 'open' });
+
+            // Add base.css to shadow root
+            const baseLink = document.createElement('link');
+            baseLink.rel = 'stylesheet';
+            baseLink.href = '/webtex-css/base.css';
+            root.appendChild(baseLink);
+
+            // Create a container for the actual content inside the shadow root
+            const container = document.createElement('div');
+            container.className = 'webtex-content-container flex justify-center py-8 min-h-full';
+            root.appendChild(container);
+
+            setShadowRoot(root);
+        }
+    }, [shadowHostRef]);
 
     useEffect(() => {
         const loadAssets = async () => {
             try {
                 setIsLoading(true);
-
-                // Derive base path from manifest URL: /local-data/Book/C/X/E/ID/images/image_manifest.json -> /local-data/Book/C/X/E/ID
                 const basePath = assets.image_manifest_url?.replace(/\/images\/image_manifest\.json$/, '') || `/books/${id}`;
-
-                // Load base.css for webtex-cn
-                if (typeof document !== 'undefined' && !document.querySelector('link[href="/webtex-css/base.css"]')) {
-                    const link = document.createElement('link');
-                    link.rel = 'stylesheet';
-                    link.href = '/webtex-css/base.css';
-                    document.head.appendChild(link);
-                }
 
                 // 1. Fetch TeX source
                 if (assets.tex_files && assets.tex_files.length > 0) {
@@ -60,22 +71,38 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
     }, [id, assets]);
 
     useEffect(() => {
-        if (!texSource || !viewerRef.current) return;
+        if (!texSource || !shadowRoot) return;
 
-        // Dynamic import from public directory at runtime
         const renderTex = async () => {
             try {
                 const webtex = await import(/* webpackIgnore: true */ '/webtex-js/webtex-cn.esm.js');
-                webtex.renderToDOM(texSource, viewerRef.current!, {
-                    cssBasePath: '/webtex-css/'
-                });
+                const container = shadowRoot.querySelector('.webtex-content-container');
+                if (!container) return;
+
+                // Use renderToHTML to avoid webtex-cn calling setTemplate which affects document.head
+                const html = webtex.renderToHTML(texSource);
+                container.innerHTML = html;
+
+                // Determine template and load into shadow root
+                const firstPage = container.querySelector('.wtc-page');
+                const templateId = firstPage?.getAttribute('data-template') || 'siku-quanshu';
+
+                // Inject template CSS into shadow root if not already there
+                const cssSelector = `link[data-wtc-template="${templateId}"]`;
+                if (!shadowRoot.querySelector(cssSelector)) {
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = `/webtex-css/${templateId}.css`;
+                    link.dataset.wtcTemplate = templateId;
+                    shadowRoot.appendChild(link);
+                }
             } catch (error) {
                 console.error('WebTeX rendering failed:', error);
                 setRenderError(String(error));
             }
         };
         renderTex();
-    }, [texSource]);
+    }, [texSource, shadowRoot]);
 
     if (isLoading) {
         return <div className="p-8 text-center text-secondary">加载数字化资源中...</div>;
@@ -97,14 +124,14 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                     </pre>
                 </div>
 
-                {/* Column 2: Rendered View */}
+                {/* Column 2: Rendered View (Encapsulated in Shadow DOM) */}
                 <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white shadow-sm">
                     <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest">
                         WebTeX 排版
                     </div>
                     <div className="flex-1 overflow-auto bg-[#fafafa]">
-                        <div ref={viewerRef} className="webtex-viewer flex justify-center py-8 min-h-full">
-                            {!texSource && <div className="text-secondary/50 text-sm mt-20">等待渲染...</div>}
+                        <div ref={shadowHostRef} className="webtex-viewer h-full">
+                            {!texSource && <div className="text-secondary/50 text-sm p-20 text-center">等待渲染...</div>}
                         </div>
                     </div>
                 </div>

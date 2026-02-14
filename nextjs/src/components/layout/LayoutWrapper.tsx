@@ -19,7 +19,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
       />
-      <main className="min-h-[calc(100vh-theme(spacing.16))]">
+      <main className="min-h-[calc(100vh-theme(spacing.16))] bg-paper">
         {children}
       </main>
       <Footer />

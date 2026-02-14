@@ -328,29 +328,26 @@ export default function BookDetailContent({ id }: BookDetailContentProps) {
 
     return (
         <LayoutWrapper>
-            <div className={`min-h-screen bg-paper transition-all duration-500 ${activeTab === 'digital' ? 'w-full px-4 sm:px-10 py-6' : 'max-w-4xl mx-auto px-6 py-8'
-                }`}>
+            <div className="max-w-4xl mx-auto px-6 py-8">
                 {/* Top Control Bar */}
                 <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
                     <div className="flex items-center gap-3 flex-wrap">
                         <Link
                             href="/book-index"
-                            className="flex items-center gap-1 text-sm text-secondary hover:text-vermilion transition-colors font-medium"
+                            className="flex items-center gap-1 text-sm text-secondary hover:text-vermilion transition-colors"
                         >
-                            <svg className="w-4 h-4" fill="none" strokeWidth="2.5" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4" fill="none" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
                                 <path d="M15 19l-7-7 7-7" />
                             </svg>
                             <span>返回索引</span>
                         </Link>
-                        <span className="text-secondary/20">/</span>
-                        <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 text-xs font-bold rounded-sm bg-ink/5 text-secondary border border-border/40">
-                                {getTypeLabel(book.type)}
-                            </span>
-                            <span className={`px-2 py-0.5 text-xs font-bold rounded-sm ${book.isDraft ? 'text-orange-700 bg-orange-50 border border-orange-200' : 'text-green-700 bg-green-50 border border-green-200'}`}>
-                                {getStatusLabel(book.isDraft)}
-                            </span>
-                        </div>
+                        <span className="text-secondary/30">|</span>
+                        <span className="px-2 py-0.5 text-xs font-medium rounded bg-paper text-secondary border border-border/60">
+                            {getTypeLabel(book.type)}
+                        </span>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded ${book.isDraft ? 'text-orange-600 bg-orange-50' : 'text-green-600 bg-green-50'}`}>
+                            {getStatusLabel(book.isDraft)}
+                        </span>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -359,11 +356,9 @@ export default function BookDetailContent({ id }: BookDetailContentProps) {
                     </div>
                 </div>
 
-                <div className="flex items-baseline justify-between mb-2">
-                    <h1 className="text-4xl md:text-5xl font-bold text-ink tracking-tight">
-                        {detail.title}
-                    </h1>
-                </div>
+                <h1 className="text-4xl font-bold text-ink mb-2 tracking-wide">
+                    {detail.title}
+                </h1>
 
                 {/* Tabs */}
                 <div className="flex border-b border-border/40 mt-6 overflow-x-auto no-scrollbar">
