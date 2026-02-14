@@ -1,6 +1,6 @@
 import { BookIndexItem, BookResourceType, BookIndexResponse, BookIndexDetailData } from '@/types';
 import {
-  DataSource,
+  DataSource, isLocalMode,
   GITHUB_BOOK_INDEX, GITHUB_BOOK_INDEX_DRAFT, JSDELIVR_FASTLY, JSDELIVR_CDN, GITHUB_ORG, GITHUB_BASE,
   GITEE_BOOK_INDEX, GITEE_BOOK_INDEX_DRAFT, GITEE_BASE, GITEE_ORG
 } from '@/lib/constants';
@@ -73,8 +73,8 @@ export async function fetchAllBooks(source: DataSource = 'github'): Promise<Book
 
   const allItems: BookIndexItem[] = [];
 
-  // 0. 特殊逻辑：如果是开发环境且在浏览器中，首先尝试加载本地 symlink 数据
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  // 0. 本地模式：从本地 symlink 数据加载
+  if (typeof window !== 'undefined' && isLocalMode) {
     try {
       const localItems = await fetchIndexFromSource('/local-data/index.json', true);
       if (localItems.length > 0) {
@@ -150,8 +150,8 @@ export async function findBookById(id: string, source: DataSource = 'github'): P
  * 获取古籍详情（JSON）
  */
 export async function fetchBookDetail(book: BookIndexItem, source: DataSource = 'github'): Promise<BookIndexDetailData> {
-  // 0. 特殊逻辑：优先尝试从本地加载详情
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development' && book.localPath) {
+  // 0. 本地模式：从本地加载详情
+  if (typeof window !== 'undefined' && isLocalMode && book.localPath) {
     try {
       const url = `/local-data/${book.localPath}`;
       const response = await fetch(url, { cache: 'no-store' });
@@ -216,7 +216,7 @@ export async function fetchBookDetail(book: BookIndexItem, source: DataSource = 
  */
 async function enrichDetailWithDigitalAssets(book: BookIndexItem, detail: BookIndexDetailData): Promise<BookIndexDetailData> {
   const id = book.id;
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && isLocalMode) {
     try {
       // 优先使用索引中计算出的 assetPath，否则降级到 ID 目录
       const basePath = book.assetPath ? `/local-data/${book.assetPath}` : `/books/${id}`;

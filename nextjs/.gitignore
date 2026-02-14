@@ -38,3 +38,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated CSS from webtex-cn
+/public/webtex-css/
+
+# Local dev symlinks (created by scripts/setup-local.sh)
+/public/books
+/public/local-data

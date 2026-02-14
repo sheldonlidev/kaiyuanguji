@@ -3,7 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "sync-css": "bash scripts/sync-webtex-css.sh",
+    "predev": "npm run sync-css",
+    "prebuild": "npm run sync-css",
+    "dev": "next dev --webpack",
+    "dev:local": "NEXT_PUBLIC_MODE=local next dev --webpack",
+    "dev:remote": "NEXT_PUBLIC_MODE=remote next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

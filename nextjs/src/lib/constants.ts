@@ -2,6 +2,12 @@
  * 应用常量
  */
 
+// 数据模式: local = 本地文件+本地库, remote = npm+GitHub 远程
+export type DataMode = 'local' | 'remote';
+export const DATA_MODE: DataMode =
+  (process.env.NEXT_PUBLIC_MODE as DataMode) || 'remote';
+export const isLocalMode = DATA_MODE === 'local';
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.kaiyuanguji.com";
 
 // 网站信息

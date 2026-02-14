@@ -25,10 +25,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "webtex-cn": [
+        "../../webtex-cn"
       ]
     },
-    "target": "ES2017",
-    "preserveSymlinks": true
+    "target": "ES2017"
   },
   "include": [
     "next-env.d.ts",

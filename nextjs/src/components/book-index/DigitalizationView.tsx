@@ -23,6 +23,9 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
     const [isSynced, setIsSynced] = useState(true);
     const [texTotal, setTexTotal] = useState(0);
     const [imagesTotal, setImagesTotal] = useState(0);
+    const [webtexVersion, setWebtexVersion] = useState<string>('');
+
+    const isLocal = process.env.NEXT_PUBLIC_MODE === 'local';
 
     const PAGE_HEIGHT = 1140; // Approx weight of .wtc-page + margins
 
@@ -108,10 +111,16 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                     document.head.appendChild(baseLink);
                 }
 
-                const webtex = await import('webtex-cn');
+                const mod = await import('webtex-cn');
+                // Handle both ES modules and transpiled CJS (default wrapper)
+                const webtex = (mod as any).default || mod;
+
+                // Try to get version from the package or use the known current version
+                // Since webtex-cn doesn't export it yet, we use the one from its package.json
+                setWebtexVersion('0.1.2');
 
                 if (!webtex || typeof webtex.renderToDOM !== 'function') {
-                    setRenderStatus(`模块加载失败: renderToDOM 不存在。keys=${Object.keys(webtex || {}).join(',')}`);
+                    setRenderStatus('模块加载失败: renderToDOM 不存在');
                     return;
                 }
 
@@ -213,7 +222,19 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                 {/* Column 2: Rendered View */}
                 <div className="border border-border/60 rounded-xl overflow-hidden flex flex-col bg-white shadow-sm" style={{ display: panels.render ? undefined : 'none' }}>
                     <div className="bg-paper border-b border-border/60 px-4 py-2.5 text-xs font-bold text-secondary uppercase tracking-widest flex items-center justify-between">
-                        <span>WebTeX 排版</span>
+                        <div className="flex items-center gap-2">
+                            <span>WebTeX 排版</span>
+                            {webtexVersion && (
+                                <span className="bg-ink/5 px-1.5 py-0.5 rounded text-[9px] font-mono text-secondary/60">
+                                    v{webtexVersion}
+                                </span>
+                            )}
+                            {isLocal && (
+                                <span className="bg-vermilion/5 text-vermilion px-1.5 py-0.5 rounded text-[9px]">
+                                    LOCAL
+                                </span>
+                            )}
+                        </div>
                         <span className="text-[10px] text-vermilion font-mono">{renderStatus}</span>
                     </div>
                     <div
