@@ -96,7 +96,7 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                     document.head.appendChild(baseLink);
                 }
 
-                const webtex = await import('webtex-cn');
+                const webtex = await import('@/lib/webtex-cn/index.js');
 
                 if (!webtex || typeof webtex.renderToDOM !== 'function') {
                     setRenderStatus(`模块加载失败: renderToDOM 不存在。keys=${Object.keys(webtex || {}).join(',')}`);
