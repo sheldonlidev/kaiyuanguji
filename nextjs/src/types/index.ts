@@ -12,6 +12,8 @@ export interface BookIndexItem {
   type: BookResourceType;  // 资源类型
   isDraft: boolean;        // 是否为草稿
   rawPath: string;         // GitHub 原始文件路径
+  localPath?: string;      // 本地文件路径 (用于开发环境)
+  assetPath?: string;      // 本地资源目录 (用于开发环境)
   author?: string;         // 作者
   collection?: string;     // 收录于
   year?: string;           // 年份

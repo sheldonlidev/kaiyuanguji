@@ -20,6 +20,9 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
             try {
                 setIsLoading(true);
 
+                // Derive base path from manifest URL: /local-data/Book/C/X/E/ID/images/image_manifest.json -> /local-data/Book/C/X/E/ID
+                const basePath = assets.image_manifest_url?.replace(/\/images\/image_manifest\.json$/, '') || `/books/${id}`;
+
                 // Load base.css for webtex-cn
                 if (typeof document !== 'undefined' && !document.querySelector('link[href="/webtex-css/base.css"]')) {
                     const link = document.createElement('link');
@@ -30,7 +33,7 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
 
                 // 1. Fetch TeX source
                 if (assets.tex_files && assets.tex_files.length > 0) {
-                    const texUrl = `/books/${id}/tex/${assets.tex_files[0]}`;
+                    const texUrl = `${basePath}/tex/${assets.tex_files[0]}`;
                     const res = await fetch(texUrl);
                     if (res.ok) {
                         const text = await res.text();
@@ -78,6 +81,8 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
         return <div className="p-8 text-center text-secondary">加载数字化资源中...</div>;
     }
 
+    const basePath = assets.image_manifest_url?.replace(/\/images\/image_manifest\.json$/, '') || `/books/${id}`;
+
     return (
         <div className="flex flex-col h-[calc(100vh-250px)] mt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
@@ -112,7 +117,7 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                         {imageManifest?.volumes?.[0]?.files?.slice(0, 10).map((file: any, index: number) => (
                             <div key={index} className="space-y-2">
                                 <img
-                                    src={`/books/${id}/images/vol01/${file.filename}`}
+                                    src={`${basePath}/images/vol01/${file.filename}`}
                                     alt={`Page ${file.page}`}
                                     className="w-full rounded border border-border/40 shadow-sm"
                                     loading="lazy"

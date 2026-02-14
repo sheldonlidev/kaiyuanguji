@@ -30,12 +30,20 @@ async function fetchIndexFromSource(url: string, isDraft: boolean): Promise<Book
     const processItems = (record: any, type: BookResourceType) => {
       if (!record) return;
       Object.values(record).forEach((book: any) => {
+        // 计算本地资源路径: 从 Book/C/X/E/ID.json 提取 Book/C/X/E/ID
+        const pathParts = (book.path || '').split('/');
+        pathParts.pop();
+        const baseDir = pathParts.join('/');
+        const assetPath = baseDir ? `${baseDir}/${book.id}` : book.id;
+
         items.push({
           id: book.id,
           name: book.title || book.name,
           type: type,
           isDraft,
           rawPath: book.path,
+          localPath: book.path,
+          assetPath: assetPath,
           author: book.author,
           collection: book.collection,
           year: book.year,
@@ -64,6 +72,20 @@ export async function fetchAllBooks(source: DataSource = 'github'): Promise<Book
   }
 
   const allItems: BookIndexItem[] = [];
+
+  // 0. 特殊逻辑：如果是开发环境且在浏览器中，首先尝试加载本地 symlink 数据
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    try {
+      const localItems = await fetchIndexFromSource('/local-data/index.json', true);
+      if (localItems.length > 0) {
+        console.log('Using local index data from book-index-draft');
+        cachedItems[source] = localItems;
+        return localItems;
+      }
+    } catch (e) {
+      console.warn('Local index not found, falling back to remote strategies');
+    }
+  }
 
   // 定义获取函数
   const fetchStrategy = async (isDraft: boolean) => {
@@ -128,24 +150,31 @@ export async function findBookById(id: string, source: DataSource = 'github'): P
  * 获取古籍详情（JSON）
  */
 export async function fetchBookDetail(book: BookIndexItem, source: DataSource = 'github'): Promise<BookIndexDetailData> {
+  // 0. 特殊逻辑：优先尝试从本地加载详情
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development' && book.localPath) {
+    try {
+      const url = `/local-data/${book.localPath}`;
+      const response = await fetch(url, { cache: 'no-store' });
+      if (response.ok) {
+        console.log(`Using local book detail for ${book.id} from ${url}`);
+        const detail = await response.json();
+        return await enrichDetailWithDigitalAssets(book, detail);
+      }
+    } catch (e) {
+      console.warn('Local detail fetch failed, falling back to remote:', e);
+    }
+  }
+
   // 1. 海外 (GitHub): 直接访问 raw.githubusercontent.com
   if (source === 'github') {
-    const baseUrl = book.isDraft
-      ? `${GITHUB_BASE}/${GITHUB_ORG}/book-index-draft/main`
-      : `${GITHUB_BASE}/${GITHUB_ORG}/book-index/main`;
-
-    const url = `${baseUrl}/${encodeURI(book.rawPath)}`;
-
-    const response = await fetch(url, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(10000),
-    });
+    const url = `${GITHUB_BASE}/${GITHUB_ORG}/${book.isDraft ? 'book-index-draft' : 'book-index'}/main/${encodeURI(book.rawPath)}`;
+    const response = await fetch(url, { cache: 'no-store' });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch book detail from ${source}: ${response.statusText}`);
     }
     const detail = await response.json();
-    return await enrichDetailWithDigitalAssets(book.id, detail);
+    return await enrichDetailWithDigitalAssets(book, detail);
   }
 
   // 2. 国内 (Gitee): 使用 jsDelivr 加速 GitHub 源
@@ -165,7 +194,7 @@ export async function fetchBookDetail(book: BookIndexItem, source: DataSource = 
       throw new Error(`Fastly status: ${response.status}`);
     }
     const detail = await response.json();
-    return await enrichDetailWithDigitalAssets(book.id, detail);
+    return await enrichDetailWithDigitalAssets(book, detail);
 
   } catch (error) {
     console.warn('Fastly fetch failed, trying fallback CDN:', error);
@@ -178,22 +207,26 @@ export async function fetchBookDetail(book: BookIndexItem, source: DataSource = 
       throw new Error(`Failed to fetch book detail from CDN: ${response.statusText}`);
     }
     const detail = await response.json();
-    return await enrichDetailWithDigitalAssets(book.id, detail);
+    return await enrichDetailWithDigitalAssets(book, detail);
   }
 }
 
 /**
  * 为详情数据注入数字化资源信息
  */
-async function enrichDetailWithDigitalAssets(id: string, detail: BookIndexDetailData): Promise<BookIndexDetailData> {
+async function enrichDetailWithDigitalAssets(book: BookIndexItem, detail: BookIndexDetailData): Promise<BookIndexDetailData> {
+  const id = book.id;
   if (typeof window !== 'undefined') {
     try {
-      const manifestUrl = `/books/${id}/images/image_manifest.json`;
+      // 优先使用索引中计算出的 assetPath，否则降级到 ID 目录
+      const basePath = book.assetPath ? `/local-data/${book.assetPath}` : `/books/${id}`;
+
+      const manifestUrl = `${basePath}/images/image_manifest.json`;
       const testRes = await fetch(manifestUrl, { method: 'HEAD' });
       if (testRes.ok) {
         detail.digital_assets = {
           image_manifest_url: manifestUrl,
-          tex_files: ['ce01.tex']
+          tex_files: ['ce01.tex'] // TODO: 动态扫描 tex 目录
         };
       }
     } catch (e) {
