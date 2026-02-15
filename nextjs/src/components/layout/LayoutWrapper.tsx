@@ -7,9 +7,10 @@ import Footer from './Footer';
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
+  hideFooter?: boolean;
 }
 
-export default function LayoutWrapper({ children }: LayoutWrapperProps) {
+export default function LayoutWrapper({ children, hideFooter = false }: LayoutWrapperProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
@@ -22,7 +23,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
       <main className="min-h-[calc(100vh-theme(spacing.16))] bg-paper">
         {children}
       </main>
-      <Footer />
+      {!hideFooter && <Footer />}
     </>
   );
 }

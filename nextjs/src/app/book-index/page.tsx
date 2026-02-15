@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function BookIndexPage() {
   return (
-    <LayoutWrapper>
+    <LayoutWrapper hideFooter={true}>
       <BookList />
     </LayoutWrapper>
   );

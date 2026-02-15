@@ -18,7 +18,7 @@ import {
 import CopyButton from '@/components/common/CopyButton';
 import SourceToggle from '@/components/common/SourceToggle';
 import { useSource } from '@/components/common/SourceContext';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter, useSearchParams, usePathname } from 'next/navigation';
 import BidLink from './BidLink';
 import DigitalizationView from './DigitalizationView';
 
@@ -277,39 +277,28 @@ function renderWorkDetail(detail: WorkDetailData) {
 
 export default function BookDetailContent({ id }: BookDetailContentProps) {
     const { source } = useSource();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+
     const [book, setBook] = useState<BookIndexItem | null>(null);
     const [detail, setDetail] = useState<BookIndexDetailData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<TabType>('basic');
 
-    // Handle initial hash on mount
-    useEffect(() => {
-        const hash = window.location.hash.replace('#', '') as TabType;
-        if (hash === 'basic' || hash === 'digital') {
-            setActiveTab(hash);
+    const activeTab = (searchParams.get('tab') || 'basic') as TabType;
+    const initialPage = parseInt(searchParams.get('page') || '1') || 1;
+
+    const setActiveTab = (tab: TabType) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tab', tab);
+        // Reset page when switching tabs? Or keep it?
+        // Usually switching to 'basic' doesn't need 'page'.
+        if (tab === 'basic') {
+            params.delete('page');
         }
-
-        const handleHashChange = () => {
-            const newHash = window.location.hash.replace('#', '') as TabType;
-            if (newHash === 'basic' || newHash === 'digital') {
-                setActiveTab(newHash);
-            }
-        };
-
-        window.addEventListener('hashchange', handleHashChange);
-        return () => window.removeEventListener('hashchange', handleHashChange);
-    }, []);
-
-    // Sync state to hash
-    useEffect(() => {
-        if (activeTab) {
-            const currentHash = window.location.hash.replace('#', '');
-            if (currentHash !== activeTab) {
-                window.history.replaceState(null, '', `#${activeTab}`);
-            }
-        }
-    }, [activeTab]);
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    };
 
     useEffect(() => {
         const loadData = async () => {
@@ -342,7 +331,7 @@ export default function BookDetailContent({ id }: BookDetailContentProps) {
 
     if (isLoading) {
         return (
-            <LayoutWrapper>
+            <LayoutWrapper hideFooter={true}>
                 <div className="max-w-4xl mx-auto px-6 py-8 animate-pulse">
                     <div className="h-8 w-48 bg-paper/50 rounded mb-8" />
                     <div className="h-12 w-3/4 bg-paper/50 rounded mb-8" />
@@ -355,7 +344,7 @@ export default function BookDetailContent({ id }: BookDetailContentProps) {
     if (!book || !detail) return null;
 
     return (
-        <LayoutWrapper>
+        <LayoutWrapper hideFooter={true}>
             {/* Header section — centered */}
             <div className="max-w-4xl mx-auto px-6 pt-8">
                 {/* Top Control Bar */}
@@ -429,7 +418,7 @@ export default function BookDetailContent({ id }: BookDetailContentProps) {
             ) : (
                 <div className="px-4 pb-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     {detail.digital_assets && (
-                        <DigitalizationView id={id} assets={detail.digital_assets} />
+                        <DigitalizationView id={id} assets={detail.digital_assets} initialPage={initialPage} />
                     )}
                 </div>
             )}

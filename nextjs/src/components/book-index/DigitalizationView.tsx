@@ -2,13 +2,19 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { DigitalAssets } from '@/types';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 interface DigitalizationViewProps {
     id: string;
     assets: DigitalAssets;
+    initialPage?: number;
 }
 
-export default function DigitalizationView({ id, assets }: DigitalizationViewProps) {
+export default function DigitalizationView({ id, assets, initialPage = 1 }: DigitalizationViewProps) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+
     const [texSource, setTexSource] = useState<string>('');
     const [imageManifest, setImageManifest] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -18,8 +24,8 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
     const imagesRef = useRef<HTMLDivElement>(null);
 
     // Pagination state
-    const [pageTex, setPageTex] = useState(1);
-    const [pageImages, setPageImages] = useState(1);
+    const [pageTex, setPageTex] = useState(initialPage);
+    const [pageImages, setPageImages] = useState(initialPage);
     const [isSynced, setIsSynced] = useState(true);
     const [texTotal, setTexTotal] = useState(0);
     const [imagesTotal, setImagesTotal] = useState(0);
@@ -27,7 +33,9 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
 
     const isLocal = process.env.NEXT_PUBLIC_MODE === 'local';
 
-    const PAGE_HEIGHT = 1140; // Approx weight of .wtc-page + margins
+    const BASE_PAGE_HEIGHT = 1140;
+    const BASE_PAGE_WIDTH = 810;
+    const [scale, setScale] = useState(1);
 
 
     // Panel visibility: which of the 3 panels are shown
@@ -135,8 +143,8 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                     const pages = viewerRef.current.querySelectorAll('.wtc-page');
                     setTexTotal(pages.length);
                     pages.forEach((page: any, idx: number) => {
-                        page.style.height = `${PAGE_HEIGHT - 40}px`; // Account for margin
-                        page.style.margin = '20px auto';
+                        page.style.height = `${BASE_PAGE_HEIGHT - 8}px`; // Minimal margin
+                        page.style.margin = '4px auto';
                         // Show only active page
                         page.style.display = (idx + 1 === pageTex) ? 'block' : 'none';
                     });
@@ -153,6 +161,24 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
 
         renderTex();
     }, [texSource, isLoading, pageTex]); // Add pageTex to dependencies to update visibility
+
+    // Resize handling for responsive scaling
+    useEffect(() => {
+        if (!renderContainerRef.current) return;
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const { width, height } = entry.contentRect;
+                // Leave some room for margins
+                const scaleW = (width - 20) / BASE_PAGE_WIDTH;
+                const scaleH = (height - 20) / BASE_PAGE_HEIGHT;
+                setScale(Math.min(scaleW, scaleH, 1.2)); // Cap at 1.2x scale
+            }
+        });
+
+        observer.observe(renderContainerRef.current);
+        return () => observer.disconnect();
+    }, []);
 
     // Update images total when manifest changes
     useEffect(() => {
@@ -174,6 +200,17 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
             else setPageImages(boundedPage);
         }
     };
+
+    // Update URL when page changes
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams.toString());
+        // We use pageTex as the primary "page" for the URL if synced
+        const currentPage = isSynced ? pageTex : pageTex;
+        if (currentPage !== parseInt(searchParams.get('page') || '0')) {
+            params.set('page', currentPage.toString());
+            router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+        }
+    }, [pageTex, isSynced, pathname, router, searchParams]);
 
 
     if (isLoading) {
@@ -244,6 +281,12 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                         <div
                             ref={viewerRef}
                             className="wtc-scope"
+                            style={{
+                                transform: `scale(${scale})`,
+                                transformOrigin: 'top center',
+                                width: BASE_PAGE_WIDTH,
+                                margin: '0 auto'
+                            }}
                         />
                     </div>
                 </div>
@@ -267,7 +310,7 @@ export default function DigitalizationView({ id, assets }: DigitalizationViewPro
                                         flexShrink: 0
                                     }}
                                 >
-                                    <div className="relative w-full h-full overflow-hidden flex items-center justify-center p-8">
+                                    <div className="relative w-full h-full overflow-hidden flex items-center justify-center p-2">
                                         <img
                                             src={`${basePath}/images/vol01/${imageManifest.volumes[0].files[pageImages - 1].filename}`}
                                             alt={`Page ${pageImages}`}
