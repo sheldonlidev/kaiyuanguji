@@ -21,6 +21,7 @@ export default function DigitalizationView({ id, assets, initialPage = 1 }: Digi
     const [renderStatus, setRenderStatus] = useState<string>('等待数据...');
     const viewerRef = useRef<HTMLDivElement>(null);
     const renderContainerRef = useRef<HTMLDivElement>(null);
+    const scaleWrapperRef = useRef<HTMLDivElement>(null);
     const imagesRef = useRef<HTMLDivElement>(null);
 
     // Pagination state
@@ -32,10 +33,6 @@ export default function DigitalizationView({ id, assets, initialPage = 1 }: Digi
     const [webtexVersion, setWebtexVersion] = useState<string>('');
 
     const isLocal = process.env.NEXT_PUBLIC_MODE === 'local';
-
-    const BASE_PAGE_HEIGHT = 1140;
-    const BASE_PAGE_WIDTH = 810;
-    const [scale, setScale] = useState(1);
 
 
     // Panel visibility: which of the 3 panels are shown
@@ -139,14 +136,21 @@ export default function DigitalizationView({ id, assets, initialPage = 1 }: Digi
                         cssBasePath: '/webtex-css/'
                     });
 
-                    // Force consistent height on all rendered pages
+                    // Find all rendered pages and configure
                     const pages = viewerRef.current.querySelectorAll('.wtc-page');
                     setTexTotal(pages.length);
                     pages.forEach((page: any, idx: number) => {
-                        page.style.height = `${BASE_PAGE_HEIGHT - 8}px`; // Minimal margin
-                        page.style.margin = '4px auto';
+                        page.style.margin = '0 auto';
+                        page.style.padding = '0';
                         // Show only active page
                         page.style.display = (idx + 1 === pageTex) ? 'block' : 'none';
+                    });
+
+                    // After render, wait for layout to complete then measure & scale
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            applyScale();
+                        });
                     });
 
                     const count = viewerRef.current.children.length;
@@ -160,23 +164,48 @@ export default function DigitalizationView({ id, assets, initialPage = 1 }: Digi
         };
 
         renderTex();
-    }, [texSource, isLoading, pageTex]); // Add pageTex to dependencies to update visibility
+    }, [texSource, isLoading, pageTex]);
 
-    // Resize handling for responsive scaling
+    // Direct DOM scaling — no React state, no stale closures
+    const applyScale = () => {
+        const container = renderContainerRef.current;
+        const wrapper = scaleWrapperRef.current;
+        const viewer = viewerRef.current;
+        if (!container || !wrapper || !viewer) return;
+
+        // Temporarily reset transform to measure natural content size
+        wrapper.style.transform = 'translateX(-50%) scale(1)';
+
+        // Find the currently visible .wtc-page
+        const visiblePage = viewer.querySelector('.wtc-page') as HTMLElement;
+        if (!visiblePage) return;
+
+        const containerW = container.clientWidth;
+        const containerH = container.clientHeight;
+        const contentW = visiblePage.offsetWidth;
+        const contentH = visiblePage.offsetHeight;
+
+        if (contentW === 0 || contentH === 0) return;
+
+        const scaleW = containerW / contentW;
+        const scaleH = containerH / contentH;
+        const s = Math.min(scaleW, scaleH, 1.5);
+        const finalScale = Math.max(s, 0.1);
+
+        // Apply the computed scale directly to the DOM
+        wrapper.style.transform = `translateX(-50%) scale(${finalScale})`;
+    };
+
+    // Resize handling for responsive scaling — uses direct DOM, no closure issues
     useEffect(() => {
-        if (!renderContainerRef.current) return;
+        const container = renderContainerRef.current;
+        if (!container) return;
 
-        const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                const { width, height } = entry.contentRect;
-                // Leave some room for margins
-                const scaleW = (width - 20) / BASE_PAGE_WIDTH;
-                const scaleH = (height - 20) / BASE_PAGE_HEIGHT;
-                setScale(Math.min(scaleW, scaleH, 1.2)); // Cap at 1.2x scale
-            }
+        const observer = new ResizeObserver(() => {
+            applyScale();
         });
 
-        observer.observe(renderContainerRef.current);
+        observer.observe(container);
         return () => observer.disconnect();
     }, []);
 
@@ -276,18 +305,23 @@ export default function DigitalizationView({ id, assets, initialPage = 1 }: Digi
                     </div>
                     <div
                         ref={renderContainerRef}
-                        className="flex-1 overflow-hidden bg-[#fafafa]"
+                        className="flex-1 overflow-hidden bg-[#fafafa] relative"
                     >
                         <div
-                            ref={viewerRef}
-                            className="wtc-scope"
+                            ref={scaleWrapperRef}
                             style={{
-                                transform: `scale(${scale})`,
+                                position: 'absolute',
+                                top: 0,
+                                left: '50%',
+                                transform: 'translateX(-50%) scale(1)',
                                 transformOrigin: 'top center',
-                                width: BASE_PAGE_WIDTH,
-                                margin: '0 auto'
                             }}
-                        />
+                        >
+                            <div
+                                ref={viewerRef}
+                                className="wtc-scope"
+                            />
+                        </div>
                     </div>
                 </div>
 
