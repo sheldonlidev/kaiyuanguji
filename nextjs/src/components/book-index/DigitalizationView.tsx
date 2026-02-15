@@ -251,7 +251,7 @@ export default function DigitalizationView({ id, assets, initialPage = 1 }: Digi
     return (
         <div className="flex flex-col h-[calc(100vh-140px)] mt-4">
             {/* Panel toggle toolbar */}
-            <div className="flex items-center gap-2 mb-3 px-1">
+            <div className="flex items-center justify-center gap-2 mb-3 px-1">
                 {[
                     { key: 'tex' as const, label: 'TeX 源码', icon: '{ }' },
                     { key: 'render' as const, label: '排版预览', icon: '◫' },
