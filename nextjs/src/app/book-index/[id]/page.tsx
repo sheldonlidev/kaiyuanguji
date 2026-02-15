@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { findBookById, fetchAllBooks } from '@/services/bookIndex';
 import { Metadata } from 'next';
 import BookDetailContent from '@/components/book-index/BookDetailContent';
@@ -55,5 +56,9 @@ export const dynamicParams = false;
 
 export default async function BookDetailPage({ params }: BookDetailPageProps) {
   const { id } = await params;
-  return <BookDetailContent id={id} />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-paper" />}>
+      <BookDetailContent id={id} />
+    </Suspense>
+  );
 }
